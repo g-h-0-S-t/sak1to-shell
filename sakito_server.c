@@ -10,7 +10,7 @@ Use this code educationally/legally.
 #pragma comment (lib, "ws2_32.lib")
 
 #define BUFLEN 8192
-// Default allocation for conns.clients (to repeat repititive calls to realloc/reduce computations).
+// Default allocation for conns.clients.
 #define MEM_CHUNK 5
 
 typedef int (*func)(char*, size_t, SOCKET);
