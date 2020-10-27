@@ -12,6 +12,7 @@ Use this code educationally/legally.
 // Default allocation for conns.clients.
 #define MEM_CHUNK 5
 
+// Typedef for array of function pointers.
 typedef int (*func)(char*, size_t, SOCKET);
 
 
