@@ -61,7 +61,6 @@ inline uint32_t ntohl_conv(char const* num)
 	return ntohl(new);
 }
 
-
 // Function to receive file from client (TCP file transfer).
 int recv_file(char *buf, char* filename, SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
