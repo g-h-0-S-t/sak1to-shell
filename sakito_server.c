@@ -3,7 +3,6 @@ Coded by d4rkstat1c.
 Use this code educationally/legally.
 #GSH
 */
-
 #include <WS2tcpip.h>
 #include <stdio.h>
 
