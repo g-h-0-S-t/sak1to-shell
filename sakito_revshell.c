@@ -8,7 +8,7 @@ Use educationally/legally.
 
 #pragma comment(lib, "Ws2_32.lib")
 
-// Length of network buffer.
+// Length of command buffer.
 #define BUFLEN 8192
 
 
