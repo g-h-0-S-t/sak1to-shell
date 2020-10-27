@@ -1,7 +1,7 @@
 /* 
 Coded by d4rkstat1c.
 Use educationally/legally.
-#GSH
+#GSH ;)
 */
 #include <ws2tcpip.h>
 #include <stdio.h>
