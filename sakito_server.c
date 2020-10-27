@@ -5,7 +5,6 @@ Use this code educationally/legally.
 */
 
 #include <WS2tcpip.h>
-#include <stdint.h>
 #include <stdio.h>
 
 #pragma comment (lib, "ws2_32.lib")
