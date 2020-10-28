@@ -306,8 +306,10 @@ void resize_conns(Conn_array* conns, int client_id) {
 		conns->clients[i].sock = conns->clients[i + 1].sock;
 		conns->clients[i].host = conns->clients[i + 1].host;
 	}
+
 	memset(&conns->clients[conns->size].sock, 0, sizeof(SOCKET));
 	conns->clients[conns->size].host = NULL;
+
 	conns->size--;
 }
 
