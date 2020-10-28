@@ -52,9 +52,8 @@ int c2_connect(SOCKET connect_socket, const char *host, const int port) {
 	return 1;
 }
 
-// Function to copy int bytes to new memory location to abide strict aliasing.
-inline uint32_t ntohl_conv(char const* num)
-{
+// Function to copy bytes to new memory location to abide strict aliasing.
+inline uint32_t ntohl_conv(char const* num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
 	// Return deserialized bytes.
