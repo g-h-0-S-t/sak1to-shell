@@ -13,10 +13,6 @@ Use this code educationally/legally.
 // Default allocation for conns.clients (to repeat repititive calls to realloc/reduce computations).
 #define MEM_CHUNK 5
 
-// Typedef for function pointer.
-typedef int (*func)(char*, size_t, SOCKET);
-
-
 typedef struct {
 	// Client hostname.
 	char* host;
@@ -33,6 +29,8 @@ typedef struct {
 	size_t size;
 } Conn_array;
 
+// Typedef for function pointer.
+typedef int (*func)(char*, size_t, SOCKET);
 
 
 // Function to close specified socket.
