@@ -92,6 +92,7 @@ int send_file(char *filename, SOCKET connect_socket, char *buf) {
 
 	uint32_t bytes = 0;
 	size_t f_size = 0;
+
 	if (fd) {
 		fseek(fd, 0L, SEEK_END);
 		f_size = ftell(fd);
