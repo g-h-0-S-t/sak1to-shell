@@ -92,7 +92,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 
 	while (1) {
 		SOCKET listen_socket = create_socket();
-		bind_socket(listen_socket, 5400);
+		bind_socket(listen_socket, 4443);
 
 		// Wait for a connection.
 		struct sockaddr_in client;
