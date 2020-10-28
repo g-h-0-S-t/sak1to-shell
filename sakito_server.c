@@ -100,7 +100,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		// Client socket object.
 		SOCKET client_socket = accept(listen_socket, (struct sockaddr*)&client, &clientSize);
 
-		// Client's remote name and client's ingress port.
+		// Client's remote name and client's engress port.
 		char host[NI_MAXHOST] = { 0 };
 		char service[NI_MAXHOST] = { 0 };
 
