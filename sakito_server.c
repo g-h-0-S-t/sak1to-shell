@@ -195,7 +195,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 	int iResult = 1;
 	if (f_size) {
-		int	bytes_read;
+		int bytes_read;
 		while (!feof(fd) && iResult > 0) {
 			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
 				// Send file's bytes chunk to remote server.
