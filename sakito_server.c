@@ -74,7 +74,7 @@ void bind_socket(SOCKET listen_socket, int port) {
 		exit(1);
 	}
 
-	// Tell winsock the socket is for listen_socket.
+	// Place the listen_socket in listen state.
 	listen(listen_socket, SOMAXCONN);
 }
 
