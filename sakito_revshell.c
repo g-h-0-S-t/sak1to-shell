@@ -154,7 +154,7 @@ int exec_cmd(SOCKET connect_socket, char *buf) {
 // Main function for handling parsing c2 commands.
 int main(void) {
 	const char host[] = "127.0.0.1";
-	const int port = 5400;
+	const int port = 4443;
 
 	while (1) {
 		// Create the connect socket.
