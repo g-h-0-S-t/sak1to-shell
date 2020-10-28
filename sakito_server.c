@@ -59,8 +59,6 @@ SOCKET create_socket() {
 	return listen_socket;
 }
 
-
-
 // Function to bind socket to specified port.
 void bind_socket(SOCKET listen_socket, int port) {
 	// Create hint structure.
@@ -79,7 +77,6 @@ void bind_socket(SOCKET listen_socket, int port) {
 	// Tell winsock the socket is for listen_socket.
 	listen(listen_socket, SOMAXCONN);
 }
-
 
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) {
@@ -210,7 +207,6 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 
 	return iResult;
 }
-
 
 // Function to copy int bytes to new memory block/location to abide strict aliasing.
 inline uint32_t ntohl_conv(char const* num) {
