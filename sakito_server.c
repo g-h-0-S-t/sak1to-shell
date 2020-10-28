@@ -39,7 +39,6 @@ void close_socket(SOCKET socket) {
 	WSACleanup();
 }
 
-
 // Function to create socket.
 SOCKET create_socket() {
 	// Initialize winsock.
