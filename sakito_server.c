@@ -370,7 +370,6 @@ void exec_cmd(char* buf) {
 
 	fputc('\n', stdout);
 
-
 	// Close the pipe.
 	_pclose(fpipe);
 }
