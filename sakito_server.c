@@ -397,7 +397,7 @@ void sakito_console(Conn_array* conns) {
 			}
 			else if (compare(cmd, "cd ")) {
 				// List all connections.
-				_chdir(&buf[3]);
+				_chdir(&cmd[2]);
 			}
 			else if (compare(cmd, "list")) {
 				// List all connections.
