@@ -13,6 +13,7 @@ Use this code educationally/legally.
 // Default allocation for conns.clients (to repeat repititive calls to realloc/reduce computations).
 #define MEM_CHUNK 5
 
+// Typedef for function pointer.
 typedef int (*func)(char*, size_t, SOCKET);
 
 
@@ -213,7 +214,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 
-// Function to copy int bytes to new memory location to abide strict aliasing.
+// Function to copy int bytes to new memory block/location to abide strict aliasing.
 inline uint32_t ntohl_conv(char const* num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
@@ -237,7 +238,7 @@ int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	size_t f_size = ntohl_conv(&*(buf));
 	int iResult = 1;
 
-	// Receive all file bytes/chunks and write to parsed filename.
+	// Receive all file bytes/chunks and write to file.
 	long int total = 0;
 	while (total != f_size && iResult > 0) {
 		iResult = recv(client_socket, buf, BUFLEN, 0);
@@ -259,7 +260,7 @@ int client_cd(char* buf, size_t cmd_len, SOCKET client_socket) {
 	return 1;
 }
 
-// Function to terminate client.
+// Function to terminate/kill client.
 int terminate_client(char* buf, size_t cmd_len, SOCKET client_socket) {
 	send(client_socket, "2", cmd_len, 0);
 
