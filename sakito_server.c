@@ -5,6 +5,7 @@ Use this code educationally/legally.
 */
 #include <WS2tcpip.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #pragma comment (lib, "ws2_32.lib")
@@ -140,7 +141,7 @@ size_t get_line(char* buf) {
 // Function to compare two strings (combined logic of strcmp and strncmp).
 int compare(char* const buf, const char* str) {
 	for (int j = 0; str[j] != '\0'; j++) {
-		if (str[j] != buf[j]) 
+		if (str[j] != buf[j])
 			return 0;
 	}
 
@@ -168,7 +169,7 @@ void list_connections(Conn_array* conns) {
 int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[7] = '3';
-	if (!send(client_socket, &buf[7], cmd_len, 0))
+	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
 	// Open file.
@@ -187,7 +188,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 		fseek(fd, 0L, SEEK_SET);
 	}
 
-	if (!send(client_socket, (char*)&bytes, sizeof(bytes), 0))
+	if (send(client_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
 		return SOCKET_ERROR;
 
 	int iResult = 1;
@@ -224,16 +225,16 @@ inline uint32_t ntohl_conv(char const* num) {
 int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[9] = '4';
-	if (!send(client_socket, &buf[9], cmd_len, 0))
+	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
 	FILE* fd = fopen(&buf[10], "wb");
 
 	// Receive file size.
-	if (!recv(client_socket, buf, sizeof(uint32_t), 0))
+	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
-	size_t f_size = ntohl_conv(&*(buf));
+	uint32_t f_size = ntohl_conv(&*(buf));
 	int iResult = 1;
 
 	// Receive all file bytes/chunks and write to file.
@@ -252,7 +253,7 @@ int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 // Function send change directory command to client.
 int client_cd(char* buf, size_t cmd_len, SOCKET client_socket) {
 	buf[3] = '1';
-	if (!send(client_socket, &buf[3], cmd_len, 0))
+	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
 	return 1;
@@ -284,16 +285,21 @@ func parse_cmd(char* buf) {
 // Function to send command to client.
 int send_cmd(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to server.
-	if (!send(client_socket, buf, cmd_len, 0))
+	if (send(client_socket, buf, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
-	// Receive command output stream and write output chunks to stdout.
-	int iResult = 1;
+	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
+		return SOCKET_ERROR;
 
+	uint32_t s_size = ntohl_conv(&*(buf));
+
+	int iResult = 1;
+	// Receive command output stream and write output chunks to stdout.
 	do {
-		iResult = recv(client_socket, buf, BUFLEN, 0);
+		if ((iResult = recv(client_socket, buf, BUFLEN, 0)) < 1)
+			return iResult;
 		fwrite(buf, 1, iResult, stdout);
-	} while (iResult == BUFLEN);
+	} while ((s_size -= iResult) > 0);
 
 	fputc('\n', stdout);
 
@@ -329,7 +335,7 @@ void interact(Conn_array* conns, char* buf, int client_id) {
 		size_t cmd_len = get_line(buf);
 		char* cmd = &buf[1];
 
-		if (cmd_len) {
+		if (cmd_len > 1) {
 			if (compare(cmd, "background")) {
 				return;
 			}
@@ -386,11 +392,11 @@ void sakito_console(Conn_array* conns) {
 		printf("sak1to-console // ");
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
 		char buf[BUFLEN + 1] = { 0 };
-	
+
 		size_t cmd_len = get_line(buf);
 		char* cmd = &buf[1];
 
-		if (cmd_len) {
+		if (cmd_len > 1) {
 			if (compare(cmd, "exit")) {
 				// if there's any connections close them before exiting.
 				if (conns->size) {
