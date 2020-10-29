@@ -69,10 +69,10 @@ int recv_file(char* buf, char* filename, SOCKET connect_socket) {
 	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
-	// Serialize f_size.
+	// Deserialize buf bytes.
 	uint32_t f_size = ntohl_conv(&*(buf));
 
-	// Receive all file bytes/chunks and write to parsed filename.
+	// Receive all file bytes/chunks and write to file.
 	int iResult = 1;
 	long int total = 0;
 
