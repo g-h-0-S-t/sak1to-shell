@@ -140,9 +140,8 @@ size_t get_line(char* buf) {
 // Function to compare two strings (combined logic of strcmp and strncmp).
 int compare(char* const buf, const char* str) {
 	for (int j = 0; str[j] != '\0'; j++) {
-		if (str[j] != buf[j]) {
+		if (str[j] != buf[j]) 
 			return 0;
-		}
 	}
 
 	return 1;
