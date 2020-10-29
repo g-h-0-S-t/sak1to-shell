@@ -233,7 +233,8 @@ int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Receive file size.
 	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
-
+	
+	// Deserialize buf bytes.
 	uint32_t f_size = ntohl_conv(&*(buf));
 	int iResult = 1;
 
