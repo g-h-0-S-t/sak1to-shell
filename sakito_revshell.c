@@ -154,7 +154,7 @@ int exec_cmd(SOCKET connect_socket, char* const buf) {
 	while (1) {
 		if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0)
 			break;
-		// If s_size hac reake
+		// If output has reached maximum capacity in memory size.
 		if ((s_size += bytes_read) == capacity)
 			output = realloc(output, (capacity += chunk));
 
