@@ -139,7 +139,7 @@ size_t get_line(char* const buf) {
 }
 
 // Function to compare two strings (combined logic of strcmp and strncmp).
-int compare(char* const buf, const char* str) {
+int compare(const char* buf, const char* str) {
 	for (int j = 0; str[j] != '\0'; j++) {
 		if (str[j] != buf[j])
 			return 0;
@@ -213,9 +213,9 @@ int send_file(char* const buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to copy int bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char* const num) {
+inline uint32_t ntohl_conv(char* const buf) {
 	uint32_t new;
-	memcpy(&new, num, sizeof(new));
+	memcpy(&new, buf, sizeof(new));
 
 	// Return deserialized bytes.
 	return ntohl(new);
