@@ -51,15 +51,14 @@ int c2_connect(SOCKET connect_socket, const char* host, const int port) {
 	return 1;
 }
 
-// Function to copy bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char* const num) {
+// Function to copy int bytes to new memory block/location to abide strict aliasing.
+inline uint32_t ntohl_conv(char* const buf) {
 	uint32_t new;
-	memcpy(&new, num, sizeof(new));
+	memcpy(&new, buf, sizeof(new));
 
 	// Return deserialized bytes.
 	return ntohl(new);
 }
-
 
 // Function to receive file from client (TCP file transfer).
 int recv_file(char* const buf, const char* filename, SOCKET connect_socket) {
