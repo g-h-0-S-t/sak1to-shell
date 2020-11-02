@@ -147,7 +147,7 @@ int exec_cmd(SOCKET connect_socket, char* const buf) {
 	const int chunk = 24576;
 	int capacity = chunk;
 
-	char *output = malloc(capacity);
+	char* output = malloc(capacity);
 	strcpy(output, buf);
 
 	// Read and store pipe's stdout in output.
@@ -218,7 +218,7 @@ int main(void) {
 						// Download file from client system.
 						iResult = send_file(&buf[1], connect_socket, buf);
 						break;
-					}
+				}
 			}
 		}
 		// If unable to connect or an error occurs sleep 8 seconds.
