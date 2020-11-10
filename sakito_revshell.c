@@ -307,17 +307,15 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	return iResult;
 }
 
-// Function to resize conns array/remove connection.
+// Function to resize conns array/remove and close connection.
 void resize_conns(Conn_array* conns, const int client_id) {
 	for (size_t i = client_id; i < conns->size; i++) {
 		conns->clients[i].sock = conns->clients[i + 1].sock;
 		conns->clients[i].host = conns->clients[i + 1].host;
 	}
 
-	memset(&conns->clients[conns->size].sock, 0, sizeof(SOCKET));
-	conns->clients[conns->size].host = NULL;
-
-	conns->size--;
+	closesocket(conns->clients[conns->size].sock);
+	conns->clients[conns->size--].host = NULL;
 }
 
 // Function to parse interactive input and send to specified client.
