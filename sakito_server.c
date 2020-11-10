@@ -22,7 +22,6 @@ typedef struct {
 } Conn;
 
 typedef struct {
-	// Socket for accepting connections.
 	SOCKET listen_socket;
 	// Array of Conn objects/structures.
 	Conn* clients;
@@ -51,7 +50,7 @@ SOCKET create_socket() {
 	int wsResult = WSAStartup(ver, &wsData);
 
 	// Create the server socket object.
-	SOCKET listen_socket = socket(AF_INET, SOCK_STREAM, 0);
+	const SOCKET listen_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_socket == INVALID_SOCKET) {
 		printf("Socket creation failed with error: %ld\n", WSAGetLastError());
 		WSACleanup();
@@ -98,7 +97,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		int clientSize = sizeof(client);
 
 		// Client socket object.
-		SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize);
+		const SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize);
 		if (client_socket == INVALID_SOCKET)
 			printf("Error accepting client connection.");
 
@@ -168,7 +167,7 @@ void list_connections(const Conn_array* conns) {
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int send_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[7] = '3';
 	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
@@ -224,7 +223,7 @@ inline uint32_t ntohl_conv(char* const buf) {
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int recv_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[9] = '4';
 	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
@@ -308,22 +307,21 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	return iResult;
 }
 
-// Function to resize conns array/remove connection.
+// Function to resize conns array/remove and close connection.
 void resize_conns(Conn_array* conns, const int client_id) {
 	for (size_t i = client_id; i < conns->size; i++) {
 		conns->clients[i].sock = conns->clients[i + 1].sock;
 		conns->clients[i].host = conns->clients[i + 1].host;
 	}
 
-	memset(&conns->clients[conns->size].sock, 0, sizeof(SOCKET));
+	closesocket(conns->clients[conns->size].sock);
 	conns->clients[conns->size].host = NULL;
-
-	conns->size--;
+	cons->size--;
 }
 
 // Function to parse interactive input and send to specified client.
 void interact(Conn_array* conns, char* const buf, const int client_id) {
-	SOCKET client_socket = conns->clients[client_id].sock;
+	const SOCKET client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
 
 	int iResult = 1;
