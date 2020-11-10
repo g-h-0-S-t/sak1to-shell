@@ -315,7 +315,8 @@ void resize_conns(Conn_array* conns, const int client_id) {
 	}
 
 	closesocket(conns->clients[conns->size].sock);
-	conns->clients[conns->size--].host = NULL;
+	conns->clients[conns->size].host = NULL;
+	cons->size--;
 }
 
 // Function to parse interactive input and send to specified client.
