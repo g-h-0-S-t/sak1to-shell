@@ -373,8 +373,7 @@ int main(void) {
 					free(conns.clients);
 				}
 				close_server(conns.listen_socket);
-				// Exit with 0 exit code.
-				return 0;
+				break;
 			}
 			else if (compare(cmd, "cd ")) {
 				// List all connections.
@@ -401,5 +400,5 @@ int main(void) {
 			}
 		}
 	}
-	return -1;
+	return 0;
 }
