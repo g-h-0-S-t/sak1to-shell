@@ -3,17 +3,17 @@ Multi-threaded c2 server and reverse TCP shell client written in pure C (Windows
 
 Server/c2 commands:
 
-list        -Lists all available connected clients.
+list
 
-download    -Downloads a file from client's disk and writes to server's disk.
+download
 
-upload      -Uploads a file from server's disk and writes to client's disk.
+upload
 
-background  -Backgrounds a specified client.
+background
 
-exit        -Closes connection or within sakito-console terminates the server service.
+exit
 
-cd          -Change directory on server system or client system.
+cd
 
 ![alt text](https://www.wallpaperbetter.com/wallpaper/156/434/483/cherry-blossom-flowers-painting-pink-1080P-wallpaper-middle-size.jpg)
 
