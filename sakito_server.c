@@ -42,7 +42,7 @@ void close_server(SOCKET socket) {
 }
 
 // Function to create socket.
-SOCKET create_socket() {
+const SOCKET create_socket() {
 	// Initialize winsock.
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
