@@ -200,24 +200,24 @@ int main(void) {
 
 				// buf[0] is the command code and &buf[1] is the parsed data.
 				switch (buf[0]) {
-				case '0':
-					iResult = exec_cmd(connect_socket, &buf[1]);
-					break;
-				case '1':
-					// Change directory.
-					_chdir(&buf[1]);
-					break;
-				case '2':
-					// Exit.
-					return 0;
-				case '3':
-					// Upload file to client system.
-					iResult = recv_file(buf, &buf[1], connect_socket);
-					break;
-				case '4':
-					// Download file from client system.
-					iResult = send_file(&buf[1], connect_socket, buf);
-					break;
+					case '0':
+						iResult = exec_cmd(connect_socket, &buf[1]);
+						break;
+					case '1':
+						// Change directory.
+						_chdir(&buf[1]);
+						break;
+					case '2':
+						// Exit.
+						return 0;
+					case '3':
+						// Upload file to client system.
+						iResult = recv_file(buf, &buf[1], connect_socket);
+						break;
+					case '4':
+						// Download file from client system.
+						iResult = send_file(&buf[1], connect_socket, buf);
+						break;
 				}
 			}
 		}
