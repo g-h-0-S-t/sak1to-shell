@@ -353,7 +353,6 @@ void interact(Conn_array* conns, char* const buf, const int client_id) {
 		}
 	}
 
-	closesocket(client_socket);
 	resize_conns(conns, client_id);
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
