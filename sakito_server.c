@@ -200,8 +200,10 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	uint32_t f_size = ntohl_conv(&*(buf));
 	int iResult = 1;
 
-	// Receive all file bytes/chunks and write to file.
+	// Varaible to keep track of downloaded data.
 	long int total = 0;
+
+	// Receive all file bytes/chunks and write to file until total == file size.
 	while (total != f_size && iResult > 0) {
 		iResult = recv(client_socket, buf, BUFLEN, 0);
 		fwrite(buf, 1, iResult, fd);
