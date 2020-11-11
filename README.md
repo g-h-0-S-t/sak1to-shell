@@ -1,7 +1,7 @@
 # sak1to-shell
 Multi-threaded c2 server and reverse TCP shell client written in pure C (Windows).
 
-Server/c2 commands:
+Command list929080:
 
 list
 
