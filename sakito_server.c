@@ -54,6 +54,13 @@ const SOCKET create_socket() {
 		exit(1);
 	}
 
+	int optval = 1;
+	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) < 0)
+	{
+		printf("Error setting socket options.\n");
+		return INVALID_SOCKET;
+	}
+
 	return listen_socket;
 }
 
