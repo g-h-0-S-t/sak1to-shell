@@ -45,7 +45,7 @@ int create_socket() {
 	} 
  
 	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-    	perror("setsockopt(SO_REUSEADDR) failed");
+    		perror("Setting socket options failed.");
 		exit(1);
 	}
  
@@ -58,19 +58,19 @@ void bind_socket(int listen_socket, const int port) {
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET; 
  
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-	serv_addr.sin_port = htons(port); 
+    	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    	serv_addr.sin_port = htons(port); 
  
 	// Bind ip address and port to listen_socket
 	if ((bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0) { 
-		perror("socket bind failed...\n");
+		perror("Socket bind failed.\n");
 		close(listen_socket);
 		exit(1); 
-	}
+    	}
  
 	// Place the listen_socket in listen state.
 	if ((listen(listen_socket, SOMAXCONN)) != 0) { 
-		perror("Listen failed...\n"); 
+		perror("Placing socket into listening state failed.\n"); 
 		exit(1); 
 	}
 }
@@ -89,13 +89,13 @@ void* accept_conns(void* lp_param) {
 	while (1) {
 		// Wait for a connection.
 		struct sockaddr_in client;
-		int clientSize = sizeof(client);
+		int client_sz = sizeof(client);
  
 		// Client socket object.
-		int client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize); 
+		int client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &client_sz); 
 		if (client_socket < 0) { 
-			perror("An error occured while accepting a connection..\n"); 
-			exit(1); 
+			perror("Error accepting client connection\n"); 
+			continue;
 		} 
  
 		// Client's remote name and client's ingress port.
@@ -110,7 +110,7 @@ void* accept_conns(void* lp_param) {
 		conns->clients[conns->size].sock = client_socket;
 		conns->size++;
  
-		if (getnameinfo((struct sockaddr*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
+		if (getnameinfo((struct sockaddr*)&client, client_sz, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
 			printf("%s connected on port %s\n", host, service);
 		}
 		else {
@@ -268,7 +268,6 @@ const func parse_cmd(char* const buf) {
 			return func_array[i];
 		}
 	}
-	
 	return &send_cmd;
 }
  
@@ -327,7 +326,7 @@ void exec_cmd(char* const buf) {
 	size_t cmd_len = ftell(fpipe);
 	fseek(fpipe, 0, SEEK_SET);
  
-	// Store command output.
+	// Stream/write command output to stdout.
 	int rb = 0;
 	do {
 		rb = fread(buf, 1, BUFLEN, fpipe);
@@ -396,3 +395,4 @@ int main(void) {
 	}
 	return 0;
 }
+
