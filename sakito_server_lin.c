@@ -13,8 +13,6 @@ Use this code educationally/legally.
 #include <stdint.h>
 #include "sakito_tools.h"
  
-#pragma comment(lib, "ws2_32.lib")
- 
 typedef struct {
 	// Client hostname.
 	char* host;
