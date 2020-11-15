@@ -236,9 +236,8 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
    if (write(client_socket, buf, cmd_len) < 1)
 		return -1;
  
-   if (read(client_socket, buf, sizeof(uint32_t)) < 1) {
+   if (read(client_socket, buf, sizeof(uint32_t)) < 1)
 		return -1;
-   }
  
 	uint32_t s_size = ntohl_conv(&*(buf));
 
