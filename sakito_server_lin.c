@@ -40,7 +40,7 @@ int create_socket() {
 	// Create the server socket object.
 	int listen_socket = socket(AF_INET, SOCK_STREAM, 0); 
 	if (listen_socket == -1) {
-		printf("Socket creation failed.\n");
+		perror("Socket creation failed.\n");
 		exit(1); 
 	} 
  
