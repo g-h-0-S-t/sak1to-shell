@@ -39,7 +39,7 @@ int compare(const char* buf, const char* str) {
 }
 
 // Function to copy int bytes to new memory block/location to abide strict aliasing.
-inline uint32_t ntohl_conv(char* const buf) {
+static inline uint32_t ntohl_conv(char* const buf) {
 	uint32_t new;
 	memcpy(&new, buf, sizeof(new));
 
