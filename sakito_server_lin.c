@@ -93,10 +93,10 @@ void* accept_conns(void* lp_param) {
  
 		// Client socket object.
 		int client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize); 
-	    if (client_socket < 0) { 
-	        perror("An error occured while accepting a connection..\n"); 
-	        exit(1); 
-	    } 
+		if (client_socket < 0) { 
+			perror("An error occured while accepting a connection..\n"); 
+			exit(1); 
+		} 
  
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
