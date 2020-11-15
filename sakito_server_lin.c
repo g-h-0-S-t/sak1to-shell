@@ -38,11 +38,11 @@ typedef int (*func)(char*, size_t, int);
 // Function to create socket.
 int create_socket() {
 	// Create the server socket object.
-    int listen_socket = socket(AF_INET, SOCK_STREAM, 0); 
-    if (listen_socket == -1) {
-        printf("Socket creation failed.\n");
-        exit(1); 
-    } 
+	int listen_socket = socket(AF_INET, SOCK_STREAM, 0); 
+	if (listen_socket == -1) {
+		printf("Socket creation failed.\n");
+		exit(1); 
+	} 
  
 	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
     	perror("setsockopt(SO_REUSEADDR) failed");
@@ -58,21 +58,21 @@ void bind_socket(int listen_socket, const int port) {
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET; 
  
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    serv_addr.sin_port = htons(port); 
+	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+	serv_addr.sin_port = htons(port); 
  
 	// Bind ip address and port to listen_socket
 	if ((bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0) { 
-        perror("socket bind failed...\n");
-        close(listen_socket);
-        exit(1); 
-    }
+		perror("socket bind failed...\n");
+		close(listen_socket);
+		exit(1); 
+	}
  
 	// Place the listen_socket in listen state.
-    if ((listen(listen_socket, SOMAXCONN)) != 0) { 
-    	perror("Listen failed...\n"); 
-    	exit(1); 
-    }
+	if ((listen(listen_socket, SOMAXCONN)) != 0) { 
+		perror("Listen failed...\n"); 
+		exit(1); 
+	}
 }
  
 // Thread to recursively accept connections.
