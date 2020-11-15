@@ -277,6 +277,7 @@ const func parse_cmd(char* const buf) {
 			return func_array[i];
 		}
 	}
+	
 	return &send_cmd;
 }
 
