@@ -82,7 +82,7 @@ void bind_socket(const SOCKET listen_socket, const int port) {
 
 	// Place the listen_socket in listen state.
 	if (listen(listen_socket, SOMAXCONN) != 0) {
-		fprintf(stderr, "An error occured while placing the socket in listening stack: %d", WSAGetLastError());
+		fprintf(stderr, "An error occured while placing the listen socket in listening state: %d", WSAGetLastError());
 		exit(1);
 	}
 }
