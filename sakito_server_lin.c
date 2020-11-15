@@ -68,7 +68,8 @@ void bind_socket(int listen_socket, const int port) {
  
 	// Place the listen_socket in listen state.
 	if ((listen(listen_socket, SOMAXCONN)) != 0) { 
-		perror("Placing socket into listening state failed.\n"); 
+		perror("Placing socket into listening state failed.\n");
+		close(listen_socket);
 		exit(1); 
 	}
 }
