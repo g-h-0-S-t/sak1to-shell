@@ -33,9 +33,15 @@ typedef int (*func)(char*, size_t, SOCKET);
 
 
 // Function to close specified socket.
-void close_server(SOCKET socket) {
+void terminate_server(SOCKET socket, char* error) {
+	int err_code = 0;
+	if (error) {
+		fprintf(stderr, "%s: ld\n", error, WSAGetLastError());
+		err_code = 1;
+	}
 	closesocket(socket);
 	WSACleanup();
+	exit(err_code);
 }
 
 // Function to create socket.
@@ -55,11 +61,8 @@ const SOCKET create_socket() {
 	}
 
 	int optval = 1;
-	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) < 0) {
-		fprintf(stderr, "Error setting socket options: \n", WSAGetLastError());
-		close_server(listen_socket);
-		exit(1);
-	}
+	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) < 0)
+		terminate_server(listen_socket, "Error setting socket options");
 
 	return listen_socket;
 }
@@ -74,17 +77,12 @@ void bind_socket(const SOCKET listen_socket, const int port) {
 	hint.sin_addr.S_un.S_addr = INADDR_ANY;
 
 	// Bind ip address and port to listen_socket.
-	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
-		fprintf(stderr, "Socket bind failed with error: %d\n", WSAGetLastError());
-		close_server(listen_socket);
-		exit(1);
-	}
+	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR)
+		terminate_server(listen_socket, "Socket bind failed with error");
 
 	// Place the listen_socket in listen state.
-	if (listen(listen_socket, SOMAXCONN) != 0) {
-		fprintf(stderr, "An error occured while placing the listen socket in listening state: %d", WSAGetLastError());
-		exit(1);
-	}
+	if (listen(listen_socket, SOMAXCONN) != 0)
+		terminate_server(listen_socket, "An error occured while placing the socket in listening stack");
 }
 
 // Thread to recursively accept connections.
@@ -101,14 +99,12 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	while (1) {
 		// Wait for a connection.
 		struct sockaddr_in client;
-		int clientSize = sizeof(client);
+		int c_size = sizeof(client);
 
 		// Client socket object.
-		const SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &clientSize);
-		if (client_socket == INVALID_SOCKET) {
-			perror("Error accepting client connection.");
-			continue;
-		}
+		const SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &c_size);
+		if (client_socket == INVALID_SOCKET)
+			terminate_server(conns->listen_socket, "Error accepting client connection");
 
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
@@ -383,7 +379,7 @@ int main(void) {
 					// Free allocated memory.
 					free(conns.clients);
 				}
-				close_server(conns.listen_socket);
+				terminate_server(conns.listen_socket, NULL);
 				break;
 			}
 			else if (compare(cmd, "cd ")) {
