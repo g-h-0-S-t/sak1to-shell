@@ -32,6 +32,12 @@ typedef struct {
  
 // Typedef for function pointer.
 typedef int (*func)(char*, size_t, int);
+
+void terminate_server(int listen_socket, char* error) {
+	close(listen_socket);
+	perror(error);
+	exit(1);
+}
  
 // Function to create socket.
 int create_socket() {
@@ -42,10 +48,8 @@ int create_socket() {
 		exit(1); 
 	} 
  
-	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-    		perror("Setting socket options failed.");
-		exit(1);
-	}
+	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+		terminate_server(listen_socket, "Setting socket options failed.\n");
  
 	return listen_socket;
 }
@@ -55,23 +59,17 @@ void bind_socket(int listen_socket, const int port) {
 	// Create hint structure.
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET; 
- 
-    	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    	serv_addr.sin_port = htons(port); 
- 
+
+	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+	serv_addr.sin_port = htons(port); 
+
 	// Bind ip address and port to listen_socket
-	if ((bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0) { 
-		perror("Socket bind failed.\n");
-		close(listen_socket);
-		exit(1); 
-    	}
- 
+	if ((bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0) 
+		terminate_server(listen_socket, "Socket bind failed.\n");
+
 	// Place the listen_socket in listen state.
-	if ((listen(listen_socket, SOMAXCONN)) != 0) { 
-		perror("Placing socket into listening state failed.\n");
-		close(listen_socket);
-		exit(1); 
-	}
+	if ((listen(listen_socket, SOMAXCONN)) != 0)
+		terminate_server(listen_socket, "Placing socket into listening state failed.\n");
 }
  
 // Thread to recursively accept connections.
@@ -92,10 +90,8 @@ void* accept_conns(void* lp_param) {
  
 		// Client socket object.
 		int client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &client_sz); 
-		if (client_socket < 0) { 
-			perror("Error accepting client connection\n"); 
-			continue;
-		} 
+		if (client_socket < 0)
+			terminate_server(conns->listen_socket, "Error accepting client connection\n");
  
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
@@ -394,4 +390,3 @@ int main(void) {
 	}
 	return 0;
 }
-
