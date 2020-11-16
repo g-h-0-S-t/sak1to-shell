@@ -91,7 +91,7 @@ void* accept_conns(void* lp_param) {
 		// Client socket object.
 		int client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &client_sz); 
 		if (client_socket < 0)
-			terminate_server(conns->listen_socket, "Error accepting client connection\n");
+			terminate_server(conns->listen_socket, "Error accepting client connection.\n");
  
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
