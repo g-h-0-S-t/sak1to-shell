@@ -39,8 +39,10 @@ void terminate_server(SOCKET socket, char* error) {
 		fprintf(stderr, "%s: ld\n", error, WSAGetLastError());
 		err_code = 1;
 	}
+
 	closesocket(socket);
 	WSACleanup();
+
 	exit(err_code);
 }
 
@@ -380,7 +382,6 @@ int main(void) {
 					free(conns.clients);
 				}
 				terminate_server(conns.listen_socket, NULL);
-				break;
 			}
 			else if (compare(cmd, "cd ")) {
 				// List all connections.
@@ -407,5 +408,5 @@ int main(void) {
 			}
 		}
 	}
-	return 0;
+	return -1;
 }
