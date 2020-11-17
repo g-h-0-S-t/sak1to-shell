@@ -64,11 +64,11 @@ void bind_socket(int listen_socket, const int port) {
 	serv_addr.sin_port = htons(port); 
 
 	// Bind ip address and port to listen_socket
-	if ((bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0) 
+	if (bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) != 0) 
 		terminate_server(listen_socket, "Socket bind failed.\n");
 
 	// Place the listen_socket in listen state.
-	if ((listen(listen_socket, SOMAXCONN)) != 0)
+	if (listen(listen_socket, SOMAXCONN) != 0)
 		terminate_server(listen_socket, "Placing socket into listening state failed.\n");
 }
  
