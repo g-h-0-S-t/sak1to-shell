@@ -108,7 +108,7 @@ void* accept_conns(void* lp_param) {
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
  
-		// Add hostname string and client_socket file descriptor to Conns.
+		// Add hostname string and client_socket file descriptor to Conns.clients structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
 		conns->size++;
