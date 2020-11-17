@@ -28,9 +28,6 @@ typedef struct {
 	size_t size;
 } Conn_map;
 
-// Typedef for function pointer.
-typedef int (*func)(char*, size_t, SOCKET);
-
 
 // Function to close specified socket.
 void terminate_server(SOCKET socket, char* error) {
@@ -113,11 +110,6 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		if (conns->size == conns->alloc)
 			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
 
-		// Add hostname string and client_socket object to Conn structure.
-		conns->clients[conns->size].host = host;
-		conns->clients[conns->size].sock = client_socket;
-		conns->size++;
-
 		if (getnameinfo((struct sockaddr*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
 			printf("%s connected on port %s\n", host, service);
 		}
@@ -125,6 +117,11 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
+
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
 	}
 	return -1;
 }
