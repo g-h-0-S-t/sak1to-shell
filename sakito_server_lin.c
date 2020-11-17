@@ -99,12 +99,7 @@ void* accept_conns(void* lp_param) {
  
 		if (conns->size == conns->alloc)
 			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
- 
-		// Add hostname string and client_socket object to Conn structure.
-		conns->clients[conns->size].host = host;
-		conns->clients[conns->size].sock = client_socket;
-		conns->size++;
- 
+
 		if (getnameinfo((struct sockaddr*)&client, client_sz, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
 			printf("%s connected on port %s\n", host, service);
 		}
@@ -112,6 +107,11 @@ void* accept_conns(void* lp_param) {
 			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
+ 
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
 	}
 }
  
