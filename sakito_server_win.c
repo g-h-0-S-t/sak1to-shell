@@ -28,6 +28,9 @@ typedef struct {
 	size_t size;
 } Conn_map;
 
+// Typedef for function pointer.
+typedef int (*func)(char*, size_t, SOCKET);
+
 
 // Function to close specified socket.
 void terminate_server(SOCKET socket, char* error) {
