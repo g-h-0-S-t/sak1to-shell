@@ -48,7 +48,7 @@ int create_socket() {
 		exit(1); 
 	} 
  
-	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) != 0)
 		terminate_server(listen_socket, "Setting socket options failed.\n");
  
 	return listen_socket;
