@@ -63,7 +63,7 @@ const SOCKET create_socket() {
 	}
 
 	int optval = 1;
-	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) < 0)
+	if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&optval, sizeof(optval)) != 0)
 		terminate_server(listen_socket, "Error setting socket options");
 
 	return listen_socket;
@@ -79,7 +79,7 @@ void bind_socket(const SOCKET listen_socket, const int port) {
 	hint.sin_addr.S_un.S_addr = INADDR_ANY;
 
 	// Bind ip address and port to listen_socket.
-	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR)
+	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) != 0)
 		terminate_server(listen_socket, "Socket bind failed with error");
 
 	// Place the listen_socket in listen state.
