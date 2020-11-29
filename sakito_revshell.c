@@ -17,9 +17,8 @@ const SOCKET create_socket() {
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
 
-	if (WSAStartup(ver, &wsData) != 0) {
+	if (WSAStartup(ver, &wsData) != 0)
 		return INVALID_SOCKET;
-	}
 
 	// Create socket and hint structure
 	const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
