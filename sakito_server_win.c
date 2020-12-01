@@ -275,9 +275,8 @@ const func parse_cmd(char* const buf) {
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
 
 	for (int i = 0; i < 4; i++) {
-		if (compare(buf, commands[i])) {
+		if (compare(buf, commands[i]))
 			return func_array[i];
-		}
 	}
 
 	return &send_cmd;
@@ -285,13 +284,19 @@ const func parse_cmd(char* const buf) {
 
 // Function to resize conns array/remove and close connection.
 void delete_conn(Conn_map* conns, const int client_id) {
-	for (size_t i = client_id; i < conns->size; i++) {
-		conns->clients[i].sock = conns->clients[i + 1].sock;
-		conns->clients[i].host = conns->clients[i + 1].host;
+	if (conns->clients[client_id].sock)
+		closesocket(conns->clients[client_id].sock);
+
+	// If there's more than one connection: resize the clients structure member values.
+	if (conns->size > 1) {
+		for (size_t i = client_id; i < conns->size - 1; i++) {
+			conns->clients[i].sock = conns->clients[i + 1].sock;
+			conns->clients[i].host = conns->clients[i + 1].host;
+		}
+		conns->clients[conns->size].sock = 0;
+		conns->clients[conns->size].host = NULL;
 	}
 
-	closesocket(conns->clients[conns->size].sock);
-	conns->clients[conns->size].host = NULL;
 	conns->size--;
 }
 
