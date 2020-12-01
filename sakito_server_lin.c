@@ -277,7 +277,6 @@ void delete_conn(Conn_map* conns, const int client_id) {
 			conns->clients[i].sock = conns->clients[i + 1].sock;
 			conns->clients[i].host = conns->clients[i + 1].host;
 		}
-
 		conns->clients[conns->size].sock = 0;
 		conns->clients[conns->size].host = NULL;
 	}
