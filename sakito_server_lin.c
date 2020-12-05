@@ -12,22 +12,36 @@ Use this code educationally/legally.
 #include <pthread.h>
 #include <stdint.h>
 #include "sakito_tools.h"
+
+// Mutex lock for pthread race condition checks.
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+// Variable for mutex condition.
+pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
  
 typedef struct {
 	// Client hostname.
 	char* host;
+
 	// Client socket.
 	int sock;
 } Conn;
  
 typedef struct {
+	// Server socket for accepting connections.
 	int listen_socket;
+
+	// Flag for race condition checks.
+	int THRD_FLAG;
+
 	// Array of Conn objects/structures.
 	Conn* clients;
+
 	// Memory blocks allocated.
 	size_t alloc;
+
 	// Amount of memory used.
 	size_t size;
+
 } Conn_map;
  
 // Typedef for function pointer.
@@ -73,8 +87,8 @@ void bind_socket(int listen_socket, const int port) {
 }
  
 // Thread to recursively accept connections.
-void* accept_conns(void* lp_param) {
-	Conn_map* conns = lp_param;
+void* accept_conns(void* param) {
+	Conn_map* conns = param;
 	conns->alloc = MEM_CHUNK;
  
 	conns->size = 0;
@@ -107,13 +121,25 @@ void* accept_conns(void* lp_param) {
 			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
- 
-		// Add hostname string and client_socket file descriptor to Conns.clients structure.
+
+		// If delete_conn() is executing: wait for it to finish modifying conns->clients to-
+		// prevent race conditions from occurring.
+		pthread_mutex_lock(&lock);
+
+		while (conns->THRD_FLAG)
+			pthread_cond_wait(&consum, &lock);
+
+		conns->THRD_FLAG = 1;
+		// Add hostname string and client_socket file descriptor to conns->clients structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
 
 		conns->size++;
-	}
+
+		// Unlock/release our mutex now so delete_conn() can continue.
+		pthread_mutex_unlock(&lock);
+		conns->THRD_FLAG = 0;
+		}
 }
  
 // Function to list all available connections.
@@ -269,6 +295,15 @@ const func parse_cmd(char* const buf) {
 
 // Function to resize conns array/remove and close connection.
 void delete_conn(Conn_map* conns, const int client_id) {
+	// If accept_conns() is executing: wait for it to finish modifying conns->clients to-
+	// prevent race conditions from occurring.
+	pthread_mutex_lock(&lock);
+
+	while (conns->THRD_FLAG)
+		pthread_cond_wait(&consum, &lock);	
+
+	conns->THRD_FLAG = 1;
+
 	if (conns->clients[client_id].sock)
 		close(conns->clients[client_id].sock);
 
@@ -284,6 +319,10 @@ void delete_conn(Conn_map* conns, const int client_id) {
 	}
 
 	conns->size--;
+
+	// Unlock/release our mutex now, so accept_conns() can continue.
+	pthread_mutex_unlock(&lock);
+	conns->THRD_FLAG = 0;
 }
 
 // Function to parse interactive input and send to specified client.
@@ -345,7 +384,10 @@ void exec_cmd(char* const buf) {
 // Main function for parsing console input and calling sakito-console functions.
 int main(void) {
 	Conn_map conns;
+
+	conns.THRD_FLAG = 0;
 	pthread_t acp_thread;
+
 	pthread_create(&acp_thread, NULL, accept_conns, &conns);
  
 	while (1) {
