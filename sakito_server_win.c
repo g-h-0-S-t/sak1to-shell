@@ -289,12 +289,13 @@ void delete_conn(Conn_map* conns, const int client_id) {
 
 	// If there's more than one connection: resize the clients structure member values.
 	if (conns->size > 1) {
-		for (size_t i = client_id; i < conns->size - 1; i++) {
+		int max_index = conns->size-1;
+		for (size_t i = client_id; i < max_index; i++) {
 			conns->clients[i].sock = conns->clients[i + 1].sock;
 			conns->clients[i].host = conns->clients[i + 1].host;
 		}
-		conns->clients[conns->size].sock = 0;
-		conns->clients[conns->size].host = NULL;
+		conns->clients[max_index].sock = 0;
+		conns->clients[max_index].host = NULL;
 	}
 
 	conns->size--;
