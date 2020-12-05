@@ -126,9 +126,11 @@ void* accept_conns(void* param) {
 		// prevent race conditions from occurring.
 		pthread_mutex_lock(&lock);
 
+		// When THRD_FLAG evaluates to 0: execution has ended.
 		while (conns->THRD_FLAG)
 			pthread_cond_wait(&consum, &lock);
 
+		// Set race condition flag to communicate with delete_conn().
 		conns->THRD_FLAG = 1;
 		// Add hostname string and client_socket file descriptor to conns->clients structure.
 		conns->clients[conns->size].host = host;
@@ -136,10 +138,11 @@ void* accept_conns(void* param) {
 
 		conns->size++;
 
-		// Unlock/release our mutex now so delete_conn() can continue.
+		// Unlock/release mutex..
 		pthread_mutex_unlock(&lock);
+		// Execution is finished so allow delete_conn() to continue.
 		conns->THRD_FLAG = 0;
-		}
+	}
 }
  
 // Function to list all available connections.
@@ -299,11 +302,13 @@ void delete_conn(Conn_map* conns, const int client_id) {
 	// prevent race conditions from occurring.
 	pthread_mutex_lock(&lock);
 
+	// Wait for accept_conns() to finish modifying conns->clients.
 	while (conns->THRD_FLAG)
 		pthread_cond_wait(&consum, &lock);	
 
 	conns->THRD_FLAG = 1;
 
+	// If the file descriptor is open: close it.
 	if (conns->clients[client_id].sock)
 		close(conns->clients[client_id].sock);
 
@@ -320,8 +325,9 @@ void delete_conn(Conn_map* conns, const int client_id) {
 
 	conns->size--;
 
-	// Unlock/release our mutex now, so accept_conns() can continue.
+	// Unlock/release our mutex.
 	pthread_mutex_unlock(&lock);
+	// Allow accept_conns() to continue.
 	conns->THRD_FLAG = 0;
 }
 
