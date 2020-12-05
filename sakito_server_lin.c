@@ -111,6 +111,7 @@ void* accept_conns(void* lp_param) {
 		// Add hostname string and client_socket file descriptor to Conns.clients structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
+
 		conns->size++;
 	}
 }
