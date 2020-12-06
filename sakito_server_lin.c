@@ -132,6 +132,7 @@ void* accept_conns(void* param) {
 
 		// Set race condition flag to communicate with delete_conn().
 		conns->THRD_FLAG = 1;
+	
 		// Add hostname string and client_socket file descriptor to conns->clients structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
