@@ -94,7 +94,7 @@ void bind_socket(const SOCKET listen_socket, const int port) {
 
 	// Place the listen_socket in listen state.
 	if (listen(listen_socket, SOMAXCONN) != 0)
-		terminate_server(listen_socket, "An error occured while placing the socket in listening stack");
+		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
 // Thread to recursively accept connections.
