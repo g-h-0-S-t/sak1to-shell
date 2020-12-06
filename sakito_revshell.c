@@ -77,7 +77,6 @@ int recv_file(char* const buf, const char* filename, const SOCKET connect_socket
 int send_file(const char* filename, const SOCKET connect_socket, char* const buf) {
 	// Open file.
 	FILE* fd = fopen(filename, "rb");
-
 	uint32_t bytes = 0, f_size = 0;
 
 	if (fd) {
