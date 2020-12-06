@@ -14,18 +14,28 @@ Use this code educationally/legally.
 typedef struct {
 	// Client hostname.
 	char* host;
+
 	// Client socket.
 	SOCKET sock;
+
 } Conn;
 
 typedef struct {
+	// Mutex object for preventing race condition checks.
+	HANDLE ghMutex;
+
+	// Server socket for accepting connections.
 	SOCKET listen_socket;
+
 	// Array of Conn objects/structures.
 	Conn* clients;
+
 	// Memory blocks allocated.
 	size_t alloc;
+
 	// Amount of memory used.
 	size_t size;
+
 } Conn_map;
 
 // Typedef for function pointer.
@@ -123,10 +133,17 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
 
+		// If delete_conn() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+		WaitForSingleObject(conns->ghMutex, INFINITE);
+
 		// Add hostname string and client_socket object to Conn structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
+
 		conns->size++;
+
+		// Release our mutex now.
+		ReleaseMutex(conns->ghMutex);
 	}
 	return -1;
 }
@@ -284,6 +301,9 @@ const func parse_cmd(char* const buf) {
 
 // Function to resize conns array/remove and close connection.
 void delete_conn(Conn_map* conns, const int client_id) {
+	// If accept_conns() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+	WaitForSingleObject(conns->ghMutex, INFINITE);
+
 	if (conns->clients[client_id].sock)
 		closesocket(conns->clients[client_id].sock);
 
@@ -299,6 +319,9 @@ void delete_conn(Conn_map* conns, const int client_id) {
 	}
 
 	conns->size--;
+
+	// Release our mutex now - so accept_conns() can continue execution.
+	ReleaseMutex(conns->ghMutex);
 }
 
 // Function to parse interactive input and send to specified client.
@@ -360,6 +383,8 @@ void exec_cmd(char* const buf) {
 // Main function for parsing console input and calling sakito-console functions.
 int main(void) {
 	Conn_map conns;
+
+	conns.ghMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
 
 	HANDLE  hColor;
