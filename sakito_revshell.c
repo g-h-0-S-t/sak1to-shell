@@ -78,8 +78,7 @@ int send_file(const char* filename, const SOCKET connect_socket, char* const buf
 	// Open file.
 	FILE* fd = fopen(filename, "rb");
 
-	uint32_t bytes = 0;
-	uint32_t f_size = 0;
+	uint32_t bytes = 0, f_size = 0;
 
 	if (fd) {
 		// Calculate file size.
