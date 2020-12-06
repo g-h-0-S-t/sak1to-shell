@@ -174,9 +174,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 
 	// Open file.
 	FILE* fd = fopen(&buf[8], "rb");
-
-	uint32_t bytes = 0;
-	uint32_t f_size = 0;
+	uint32_t bytes = 0, f_size = 0;
 
 	if (fd) {
 		// Get file size.
