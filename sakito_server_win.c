@@ -165,7 +165,7 @@ void list_connections(const Conn_map* conns) {
 	}
 }
 
-// Function to receive file from target machine (TCP file transfer).
+// Function to upload file to target machine (TCP file transfer).
 int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// Send command to the client to be parsed.
 	buf[7] = '3';
