@@ -21,7 +21,7 @@ typedef struct {
 } Conn;
 
 typedef struct {
-	// Mutex object for preventing race condition checks.
+	// Mutex object for race condition checks.
 	HANDLE ghMutex;
 
 	// Server socket for accepting connections.
