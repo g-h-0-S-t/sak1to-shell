@@ -269,7 +269,7 @@ int client_cd(char* const buf, const size_t cmd_len, int client_socket) {
  
 // Function to terminate/kill client.
 int terminate_client(char* const buf, const size_t cmd_len, int client_socket) {
-	// '2' is the command code for terminating the client process.
+	// '2' is the command code for terminating/killing the process on the client.
 	write(client_socket, "2", cmd_len);
  
 	return 0;
