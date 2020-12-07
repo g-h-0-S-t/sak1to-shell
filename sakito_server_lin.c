@@ -238,6 +238,8 @@ int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
 	// Receive all file bytes/chunks and write to file until total == file size.
 	while (total != f_size && i_result > 0) {
 		i_result = read(client_socket, buf, BUFLEN);
+
+		// Write bytes to file.
 		fwrite(buf, 1, i_result, fd);
 		total += i_result;
 	}
@@ -347,6 +349,7 @@ void delete_conn(Conn_map* conns, const int client_id) {
 
 	// Unlock/release our mutex.
 	pthread_mutex_unlock(&lock);
+
 	// Allow accept_conns() to continue.
 	conns->THRD_FLAG = 0;
 }
