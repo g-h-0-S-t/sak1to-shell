@@ -195,7 +195,7 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 	if (write(client_socket, (char*)&bytes, sizeof(bytes)) < 1)
 		return -1;
  
-	// Declare i_result as true.
+	// Initialize i_result as true.
 	int i_result = 1;
  
 	if (f_size) {
