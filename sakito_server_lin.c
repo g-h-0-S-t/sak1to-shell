@@ -280,7 +280,9 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 	// Deserialize output size bytes.
 	uint32_t s_size = ntohl_conv(&*(buf));
 
+	// Initialize i_result to true.
 	int i_result = 1;
+	
 	// Receive command output stream and write output chunks to stdout.
 	do {
 		if ((i_result = read(client_socket, buf, BUFLEN)) < 1)
