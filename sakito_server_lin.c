@@ -300,6 +300,7 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 const func parse_cmd(char* const buf) {
 	// Array of command strings to parse stdin with.
 	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
+
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file};
 
