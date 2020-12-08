@@ -319,7 +319,7 @@ const func parse_cmd(char* const buf) {
 		}
 	}
 
-	// If no command was parsed: send/execute the command string on the client via cmd.exe.
+	// If no command was parsed: send/execute the command string on the client via _popen().
 	return &send_cmd;
 }
 
