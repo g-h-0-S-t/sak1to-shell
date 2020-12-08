@@ -315,6 +315,7 @@ const func parse_cmd(char* const buf) {
 			return func_array[i];
 	}
 
+	// If no command was parsed: send/execute the command string on the client via _popen().
 	return &send_cmd;
 }
 
