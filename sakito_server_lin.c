@@ -314,9 +314,8 @@ const func parse_cmd(char* const buf) {
 
 	// Parse stdin string and return it's corresponding function pointer.
 	for (int i = 0; i < 4; i++) {
-		if (compare(buf, commands[i])) {
+		if (compare(buf, commands[i]))
 			return func_array[i];
-		}
 	}
 
 	// If no command was parsed: send/execute the command string on the client via _popen().
