@@ -72,7 +72,7 @@ int create_socket() {
  
 // Function to bind socket to specified port.
 void bind_socket(int listen_socket, const int port) {
-	// Create hint structure.
+	// Create sockaddr_in structure.
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET; 
 
