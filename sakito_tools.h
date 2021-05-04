@@ -1,7 +1,6 @@
 /* 
 Coded by d4rkstat1c.
 Use educationally/legally.
-#GSH ;)
 */
 #ifndef SAKITO_TOOLS_H
 
@@ -30,10 +29,9 @@ size_t get_line(char* const buf) {
 
 // Function to compare two strings (combined logic of strcmp and strncmp).
 int compare(const char* buf, const char* str) {
-	for (int j = 0; str[j] != '\0'; j++) {
+	for (int j = 0; str[j] != '\0'; j++)
 		if (str[j] != buf[j])
 			return 0;
-	}
 
 	return 1;
 }
