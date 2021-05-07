@@ -361,7 +361,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 				return;
 			}
 			else {
-				// If a command is parsed call it's corresponding function else execute-
+				// If a command is parsed call its corresponding function else execute-
 				// the command on the client.
 				const func target_func = parse_cmd(cmd);
 				i_result = target_func(buf, cmd_len, client_socket);
