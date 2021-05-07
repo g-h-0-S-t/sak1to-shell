@@ -308,7 +308,7 @@ const func parse_cmd(char* const buf) {
 	// Function pointer array of each c2 command.
 	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file};
 
-	// Parse stdin string and return it's corresponding function pointer.
+	// Parse stdin string and return its corresponding function pointer.
 	for (int i = 0; i < 4; i++)
 		if (compare(buf, commands[i]))
 			return func_array[i];
