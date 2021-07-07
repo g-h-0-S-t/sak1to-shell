@@ -19,7 +19,7 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 // Variable for mutex condition.
 pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
 
-void terminate_server(int listen_socket, char* error) {
+void terminate_server(int listen_socket, const char* const error) {
 	close(listen_socket);
 	perror(error);
 	exit(1);
