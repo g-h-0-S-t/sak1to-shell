@@ -22,7 +22,6 @@ pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
 void terminate_server(int listen_socket, char* error) {
 	close(listen_socket);
 	perror(error);
-	
 	exit(1);
 }
  
@@ -46,7 +45,6 @@ void bind_socket(int listen_socket) {
 	// Create sockaddr_in structure.
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET; 
-
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
 	serv_addr.sin_port = htons(PORT); 
 
@@ -61,13 +59,14 @@ void bind_socket(int listen_socket) {
  
 // Thread to recursively accept connections.
 void* accept_conns(void* param) {
+	// Assign member values to connection map object/structure.
 	Conn_map* conns = param;
 	conns->alloc = MEM_CHUNK;
- 
 	conns->size = 0;
 	conns->clients = malloc(conns->alloc * sizeof(Conn));
- 
 	conns->listen_socket = create_socket();
+
+	// Bind socket to port.
 	bind_socket(conns->listen_socket);
  
 	while (1) {
@@ -109,7 +108,6 @@ void* accept_conns(void* param) {
 		// Add hostname string and client_socket file descriptor to conns->clients structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
-
 		conns->size++;
 
 		// Unlock/release mutex..
@@ -135,11 +133,9 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
  
 	// If the file exists:
 	if (fd) {
-		// Get file size.
+		// Get file size and serialize f_size.
 		fseek(fd, 0L, SEEK_END);
 		f_size = ftell(fd);
- 
-		// Serialize f_size.
 		bytes = htonl(f_size);
 		fseek(fd, 0L, SEEK_SET);
 	}
@@ -323,7 +319,6 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
- 
  		buf[0] = '0';
 		size_t cmd_len = get_line(&buf[1]) + 1;
 		char* cmd = &buf[1];
@@ -347,10 +342,9 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
  
 // Function to execute command.
 void exec_cmd(char* const buf) {
-	// Call Popen to execute command(s) and read the process' output.
+	// Call Popen to execute command(s) and read the processes' output.
 	FILE* fpipe = popen(buf, "r");
 	fseek(fpipe, 0, SEEK_END);
- 
 	size_t cmd_len = ftell(fpipe);
 	fseek(fpipe, 0, SEEK_SET);
  
