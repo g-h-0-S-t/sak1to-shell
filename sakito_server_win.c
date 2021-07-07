@@ -13,7 +13,7 @@ Use this code educationally/legally.
 #pragma comment(lib, "ws2_32.lib")
 
 // Function to close specified socket.
-void terminate_server(SOCKET socket, char* error) {
+void terminate_server(SOCKET socket, const char* const error) {
 	int err_code = 0;
 	if (error) {
 		fprintf(stderr, "%s: ld\n", error, WSAGetLastError());
