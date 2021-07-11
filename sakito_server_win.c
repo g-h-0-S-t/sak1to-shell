@@ -70,19 +70,19 @@ void bind_socket(const SOCKET listen_socket) {
 }
 
 void add_client(Conn_map* conns, char* const host, SOCKET client_socket) {
-	// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-	WaitForSingleObject(conns->ghMutex, INFINITE);
+		// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+		WaitForSingleObject(conns->ghMutex, INFINITE);
 
-	if (conns->size == conns->alloc)
-		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+		if (conns->size == conns->alloc)
+			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
 
-	// Add hostname string and client_socket object to Conn structure.
-	conns->clients[conns->size].host = host;
-	conns->clients[conns->size].sock = client_socket;
-	conns->size++;
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
 
-	// Release our mutex now.
-	ReleaseMutex(conns->ghMutex);
+		// Release our mutex now.
+		ReleaseMutex(conns->ghMutex);
 }
 
 // Thread to recursively accept connections.
@@ -121,7 +121,6 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		// Add client oriented data to conns object.
 		add_client(conns, host, client_socket);
 	}
-
 	return -1;
 }
 
@@ -200,12 +199,6 @@ int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_
 	// '2' is the command code for terminating/killing the process on the client.
 	send(client_socket, "2", cmd_len, 0);
 
-	return 0;
-}
-
-int detect_eos(int i_result, char* const buf) {
-	if (buf[0] == '\x11' && buf[1] == '\x13' && buf[2] == '\xcf')
-		return 1;
 	return 0;
 }
 
@@ -321,7 +314,6 @@ void terminate_console(HANDLE acp_thread, Conn_map conns) {
 		// Free allocated memory.
 		free(conns.clients);
 	}
-
 	terminate_server(conns.listen_socket, NULL);
 }
 
