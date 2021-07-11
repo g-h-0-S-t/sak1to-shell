@@ -23,8 +23,13 @@ pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
 
 void terminate_server(int listen_socket, const char* const error) {
 	close(listen_socket);
-	perror(error);
-	exit(1);
+	int err_code = 0;
+	if (error) {
+		err_code = 1;
+		perror(error);
+	}
+
+	exit(err_code);
 }
  
 // Function to create socket.
@@ -255,8 +260,7 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 
 	// Receive command output stream and write output chunks to stdout.
 	do {
-		if ((i_result = read(client_socket, buf, BUFLEN)) < 1)
-			return i_result;
+		i_result = read(client_socket, buf, BUFLEN);
 		if (detect_eos(i_result, buf))
 			break;
 		fwrite(buf, 1, i_result, stdout);
@@ -354,20 +358,21 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
  
 	// If client disconnected/exit command is parsed: delete the connection.
 	delete_client(conns, client_id);
-	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
+	printf("Client: \"%s\" disconnected.\n\n", client_host);
 }
 
-void terminate_console(Conn_map conns, pthread_t acp_thread) {
+void terminate_console(Conn_map *conns, pthread_t acp_thread) {
 	// Quit accepting connections.
 	pthread_cancel(acp_thread);
 	// if there's any connections close them before exiting.
-	if (conns.size) {
-		for (size_t i = 0; i < conns.size; i++)
-			close(conns.clients[i].sock);
+	if (conns->size) {
+		for (size_t i = 0; i < conns->size; i++)
+			close(conns->clients[i].sock);
 		// Free allocated memory.
-		free(conns.clients);
+		free(conns->clients);
 	}
-	close(conns.listen_socket);
+
+	terminate_server(conns->listen_socket, NULL);
 }
 
 void validate_id(char* const buf, Conn_map conns) {
@@ -419,30 +424,23 @@ int main(void) {
 		char buf[BUFLEN + 1] = { 0 };
 		size_t cmd_len = get_line(buf);
  
-		if (cmd_len > 1) {
-			if (compare(buf, "exit")) {
-				// Terminate sakito-console.
-				terminate_console(conns, acp_thread);
-				break;
-			}
-			else if (compare(buf, "cd ")) {
+		if (cmd_len > 1)
+			if (compare(buf, "exit"))
+				// Terminate sakito-console & server.
+				terminate_console(&conns, acp_thread);
+			else if (compare(buf, "cd "))
 				// List all connections.
 				chdir(buf+3);
-			}
-			else if (compare(buf, "list")) {
+			else if (compare(buf, "list"))
 				// List all connections.
 				list_connections(&conns);
-			}
-			else if (compare(buf, "interact ")) {
+			else if (compare(buf, "interact "))
 				// If ID is valid interact with client.
 				validate_id(buf, conns);
-			}
-			else {
+			else
 				// Execute command on host system.
 				exec_cmd(buf);
-			}
-		}
 	}
 
-	return 0;
+	return -1;
 }
