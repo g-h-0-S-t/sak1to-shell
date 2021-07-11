@@ -16,7 +16,6 @@ static inline int32_t ntohl_conv(char* const buf) {
 	return ntohl(new);
 }
 
-
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
 	// Typedef for function pointer.
 	typedef int (*func)(char*, size_t, SOCKET);
