@@ -69,7 +69,7 @@ static inline int32_t ntohl_conv(char* const buf) {
 
 		if (f_size > 0) {
 			// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
-			int bytes_read;
+			DWORD bytes_read;
 			while ((ReadFile(h_file, buf, BUFLEN, &bytes_read, NULL))
 				&& (bytes_read != 0)
 				&& (i_result > 0))
