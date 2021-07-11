@@ -58,6 +58,33 @@ void bind_socket(int listen_socket) {
 	if (listen(listen_socket, SOMAXCONN) != 0)
 		terminate_server(listen_socket, "Placing socket into listening state failed.\n");
 }
+
+void add_client(Conn_map* conns, char host[], int client_socket) {
+	// If delete_conn() is executing: wait for it to finish modifying conns->clients to-
+	// prevent race conditions from occurring.
+	pthread_mutex_lock(&lock);
+
+	if (conns->size == conns->alloc)
+		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+
+	// When THRD_FLAG evaluates to 0: execution has ended.
+	while (conns->THRD_FLAG)
+		pthread_cond_wait(&consum, &lock);
+
+	// Set race condition flag to communicate with delete_conn().
+	conns->THRD_FLAG = 1;
+
+	// Add hostname string and client_socket file descriptor to conns->clients structure.
+	conns->clients[conns->size].host = host;
+	conns->clients[conns->size].sock = client_socket;
+	conns->size++;
+
+	// Unlock/release mutex..
+	pthread_mutex_unlock(&lock);
+
+	// Execution is finished so allow delete_conn() to continue.
+	conns->THRD_FLAG = 0;
+}
  
 // Thread to recursively accept connections.
 void* accept_conns(void* param) {
@@ -80,13 +107,10 @@ void* accept_conns(void* param) {
 		int client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &client_sz); 
 		if (client_socket < 0)
 			terminate_server(conns->listen_socket, "Error accepting client connection.\n");
- 
+
 		// Client's remote name and client's ingress port.
 		char host[NI_MAXHOST] = { 0 };
 		char service[NI_MAXHOST] = { 0 };
- 
-		if (conns->size == conns->alloc)
-			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
 
 		if (getnameinfo((struct sockaddr*)&client, client_sz, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
 			printf("%s connected on port %s\n", host, service);
@@ -96,27 +120,8 @@ void* accept_conns(void* param) {
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
 
-		// If delete_conn() is executing: wait for it to finish modifying conns->clients to-
-		// prevent race conditions from occurring.
-		pthread_mutex_lock(&lock);
-
-		// When THRD_FLAG evaluates to 0: execution has ended.
-		while (conns->THRD_FLAG)
-			pthread_cond_wait(&consum, &lock);
-
-		// Set race condition flag to communicate with delete_conn().
-		conns->THRD_FLAG = 1;
-	
-		// Add hostname string and client_socket file descriptor to conns->clients structure.
-		conns->clients[conns->size].host = host;
-		conns->clients[conns->size].sock = client_socket;
-		conns->size++;
-
-		// Unlock/release mutex..
-		pthread_mutex_unlock(&lock);
-	
-		// Execution is finished so allow delete_conn() to continue.
-		conns->THRD_FLAG = 0;
+		// Add client oriented data to conns object.
+		add_client(conns, host, client_socket);
 	}
 }
 
