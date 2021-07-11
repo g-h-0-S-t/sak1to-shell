@@ -50,12 +50,12 @@ static inline int32_t ntohl_conv(char* const buf) {
 
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) {
 		return CreateFile(filename,
-						desired_access,
-						0,
-						NULL,
-						creation_dispostion,
-						FILE_ATTRIBUTE_NORMAL,
-						NULL);
+				desired_access,
+				0,
+				NULL,
+				creation_dispostion,
+				FILE_ATTRIBUTE_NORMAL,
+				NULL);
 	}
 
 	// Function for sending file to client (TCP file transfer).
