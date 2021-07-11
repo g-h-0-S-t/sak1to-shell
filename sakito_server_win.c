@@ -133,7 +133,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	// Open file with read permissions.
 	HANDLE h_file = sakito_win_openf(buf+8, GENERIC_READ, OPEN_EXISTING);
 
-	// If File Exists.
+	// If file doesn't exist.
 	if (h_file == INVALID_HANDLE_VALUE) {
 		puts("File not found.\n");
 		return FILE_NOT_FOUND;
