@@ -308,6 +308,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 void terminate_console(HANDLE acp_thread, Conn_map conns) {
 	// Quit accepting connections.
 	TerminateThread(acp_thread, 0);
+
 	// if there's any connections close them before exiting.
 	if (conns.size) {
 		for (size_t i = 0; i < conns.size; i++)
