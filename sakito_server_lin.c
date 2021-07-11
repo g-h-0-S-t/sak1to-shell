@@ -242,13 +242,6 @@ int terminate_client(char* const buf, const size_t cmd_len, int client_socket) {
 	return 0;
 }
 
-int detect_eos(int i_result, char* const buf) {
-	if (buf[0] == '\x11' && buf[1] == '\x13' && buf[2] == '\xcf')
-		return 1;
-
-	return 0;
-}
-
 // Function to send command to client.
 int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 	// Send command to server.
