@@ -336,8 +336,8 @@ void exec_cmd(char buf[]) {
 // Main function for parsing console input and calling sakito-console functions.
 int main(void) {
 	Conn_map conns;
-
 	conns.ghMutex = CreateMutex(NULL, FALSE, NULL);
+
 	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
 	HANDLE  hColor;
 	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
