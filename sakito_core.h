@@ -7,15 +7,6 @@ Use educationally/legally.
 
 #define BUFLEN 8192
 
-// Function to compare two strings (combined logic of strcmp and strncmp).
-int compare(const char* buf, const char* str) {
-	for (int j = 0; str[j] != '\0'; j++)
-		if (str[j] != buf[j])
-			return 0;
-
-	return 1;
-}
-
 // Function to copy int bytes to new memory block/location to abide strict aliasing.
 static inline int32_t ntohl_conv(char* const buf) {
 	int32_t new;
@@ -131,15 +122,15 @@ static inline int32_t ntohl_conv(char* const buf) {
 
 	    // Launch the child process & execute the command. 
 	    BOOL i_result = CreateProcess(NULL,
-									cmd,
-									NULL,
-									NULL,
-									TRUE,
-									0,
-									NULL,
-									NULL,
-									&si,
-									&pi);
+					cmd,
+					NULL,
+					NULL,
+					TRUE,
+					0,
+					NULL,
+					NULL,
+					&si,
+					&pi);
 
 		if (i_result)
 			// Wait until child process exits.
