@@ -144,7 +144,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	GetFileSizeEx(h_file, &largeint_struct);
 	f_size = (int32_t)largeint_struct.QuadPart;
 
-	// Windows TCP file transfer (receive) function located in sakito_tools.h.
+	// Windows TCP file transfer (receive) function located in sakito_core.h.
 	return sakito_win_sendf(h_file, client_socket, buf, f_size);
 }
 
