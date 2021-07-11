@@ -107,7 +107,10 @@ void list_connections(const Conn_map* conns) {
 	}
 }
 
-
-#endif
+int detect_eos(int i_result, char* const buf) {
+	if (buf[0] == '\x11' && buf[1] == '\x13' && buf[2] == '\xcf')
+		return 1;
+	return 0;
+}
 
 #endif
