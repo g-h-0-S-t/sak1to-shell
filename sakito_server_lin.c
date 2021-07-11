@@ -378,10 +378,7 @@ void validate_id(char buf[], Conn_map conns) {
 void exec_cmd(char* const buf) {
 	// Call Popen to execute command(s) and read the processes' output.
 	FILE* fpipe = popen(buf, "r");
-	fseek(fpipe, 0, SEEK_END);
-	size_t cmd_len = ftell(fpipe);
-	fseek(fpipe, 0, SEEK_SET);
- 
+
 	// Stream/write command output to stdout.
 	int rb = 0;
 	do {
