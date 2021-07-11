@@ -7,46 +7,7 @@ Use educationally/legally.
 
 #define BUFLEN 8192
 
-// Function to copy int bytes to new memory block/location to abide strict aliasing.
-static inline int32_t ntohl_conv(char* const buf) {
-	int32_t new;
-	memcpy(&new, buf, sizeof(new));
-
-	// Return deserialized bytes.
-	return ntohl(new);
-}
-
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
-	// Typedef for function pointer.
-	typedef int (*func)(char*, size_t, SOCKET);
-
-	typedef struct {
-		// Client hostname.
-		char* host;
-
-		// Client socket.
-		SOCKET sock;
-
-	} Conn;
-
-	typedef struct {
-		// Mutex object for race condition checks.
-		HANDLE ghMutex;
-
-		// Server socket for accepting connections.
-		SOCKET listen_socket;
-
-		// Array of Conn objects/structures.
-		Conn* clients;
-
-		// Memory blocks allocated.
-		size_t alloc;
-
-		// Amount of memory used.
-		size_t size;
-
-	} Conn_map;
-
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) {
 		return CreateFile(filename,
 				desired_access,
@@ -141,37 +102,15 @@ static inline int32_t ntohl_conv(char* const buf) {
 
 	    return i_result;
 	}
-
-#elif defined(__linux__)
-	// Typedef for function pointer.
-	typedef int (*func)(char*, size_t, int);
-
-	typedef struct {
-		// Client hostname.
-		char* host;
-
-		// Client socket.
-		int sock;
-
-	} Conn;
-
-	typedef struct {
-		// Server socket for accepting connections.
-		int listen_socket;
-
-		// Flag for race condition checks.
-		int THRD_FLAG;
-
-		// Array of Conn objects/structures.
-		Conn* clients;
-
-		// Memory blocks allocated.
-		size_t alloc;
-
-		// Amount of memory used.
-		size_t size;
-
-	} Conn_map;
 #endif
+
+// Function to copy int bytes to new memory block/location to abide strict aliasing.
+static inline int32_t ntohl_conv(char* const buf) {
+	int32_t new;
+	memcpy(&new, buf, sizeof(new));
+
+	// Return deserialized bytes.
+	return ntohl(new);
+}
 
 #endif
