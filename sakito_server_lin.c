@@ -60,7 +60,7 @@ void bind_socket(int listen_socket) {
 }
 
 void add_client(Conn_map* conns, char host[], int client_socket) {
-	// If delete_conn() is executing: wait for it to finish modifying conns->clients to-
+	// If delete_client() is executing: wait for it to finish modifying conns->clients to-
 	// prevent race conditions from occurring.
 	pthread_mutex_lock(&lock);
 
@@ -71,7 +71,7 @@ void add_client(Conn_map* conns, char host[], int client_socket) {
 	while (conns->THRD_FLAG)
 		pthread_cond_wait(&consum, &lock);
 
-	// Set race condition flag to communicate with delete_conn().
+	// Set race condition flag to communicate with delete_client().
 	conns->THRD_FLAG = 1;
 
 	// Add hostname string and client_socket file descriptor to conns->clients structure.
@@ -82,7 +82,7 @@ void add_client(Conn_map* conns, char host[], int client_socket) {
 	// Unlock/release mutex..
 	pthread_mutex_unlock(&lock);
 
-	// Execution is finished so allow delete_conn() to continue.
+	// Execution is finished so allow delete_client() to continue.
 	conns->THRD_FLAG = 0;
 }
  
@@ -286,7 +286,7 @@ const func parse_cmd(char* const buf) {
 }
 
 // Function to resize conns array/remove and close connection.
-void delete_conn(Conn_map* conns, const int client_id) {
+void delete_client(Conn_map* conns, const int client_id) {
 	// If accept_conns() is executing: wait for it to finish modifying conns->clients to-
 	// prevent race conditions from occurring.
 	pthread_mutex_lock(&lock);
@@ -353,7 +353,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	}
  
 	// If client disconnected/exit command is parsed: delete the connection.
-	delete_conn(conns, client_id);
+	delete_client(conns, client_id);
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
 
