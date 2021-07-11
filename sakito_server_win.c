@@ -321,6 +321,7 @@ void terminate_console(HANDLE acp_thread, Conn_map conns) {
 		// Free allocated memory.
 		free(conns.clients);
 	}
+
 	terminate_server(conns.listen_socket, NULL);
 }
 
