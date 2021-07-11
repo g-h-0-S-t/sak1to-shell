@@ -121,6 +121,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		// Add client oriented data to conns object.
 		add_client(conns, host, client_socket);
 	}
+
 	return -1;
 }
 
