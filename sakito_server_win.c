@@ -70,19 +70,19 @@ void bind_socket(const SOCKET listen_socket) {
 }
 
 void add_client(Conn_map* conns, char host[], SOCKET client_socket) {
-	// If delete_conn() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-	WaitForSingleObject(conns->ghMutex, INFINITE);
+		// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+		WaitForSingleObject(conns->ghMutex, INFINITE);
 
-	if (conns->size == conns->alloc)
-		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+		if (conns->size == conns->alloc)
+			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
 
-	// Add hostname string and client_socket object to Conn structure.
-	conns->clients[conns->size].host = host;
-	conns->clients[conns->size].sock = client_socket;
-	conns->size++;
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
 
-	// Release our mutex now.
-	ReleaseMutex(conns->ghMutex);
+		// Release our mutex now.
+		ReleaseMutex(conns->ghMutex);
 }
 
 // Thread to recursively accept connections.
@@ -249,7 +249,7 @@ const func parse_cmd(char* const buf) {
 }
 
 // Function to resize conns array/remove and close connection.
-void delete_conn(Conn_map* conns, const int client_id) {
+void delete_client(Conn_map* conns, const int client_id) {
 	// If accept_conns() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
 	WaitForSingleObject(conns->ghMutex, INFINITE);
 
@@ -306,7 +306,7 @@ void interact(Conn_map* conns, char* const buf, const int client_id) {
 	}
 
 	// If client disconnected/exit command is parsed: delete the connection.
-	delete_conn(conns, client_id);
+	delete_client(conns, client_id);
 	printf("Client: \"%s\" is no longer connected.\n\n", client_host);
 }
 
