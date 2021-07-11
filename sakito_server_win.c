@@ -355,7 +355,7 @@ int main(void) {
 				terminate_console(acp_thread, conns);
 			}
 			else if (compare(buf, "cd ")) {
-				// List all connections.
+				// Change directory on host system.
 				_chdir(buf+3);
 			}
 			else if (compare(buf, "list")) {
