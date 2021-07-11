@@ -69,6 +69,22 @@ void bind_socket(const SOCKET listen_socket) {
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
+void add_client(Conn_map* conns, char host[], SOCKET client_socket) {
+	// If delete_conn() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+	WaitForSingleObject(conns->ghMutex, INFINITE);
+
+	if (conns->size == conns->alloc)
+		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+
+	// Add hostname string and client_socket object to Conn structure.
+	conns->clients[conns->size].host = host;
+	conns->clients[conns->size].sock = client_socket;
+	conns->size++;
+
+	// Release our mutex now.
+	ReleaseMutex(conns->ghMutex);
+}
+
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	// Assign member values to connection map object/structure.
@@ -94,10 +110,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 		char host[NI_MAXHOST] = { 0 };
 		char service[NI_MAXHOST] = { 0 };
 
-		if (conns->size == conns->alloc)
-			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
-
-		if (getnameinfo((struct sockaddr*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
+		if (getnameinfo((struct sockaddr*)&client, c_size, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
 			printf("%s connected on port %s\n", host, service);
 		}
 		else {
@@ -105,16 +118,8 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
 
-		// If delete_conn() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-		WaitForSingleObject(conns->ghMutex, INFINITE);
-
-		// Add hostname string and client_socket object to Conn structure.
-		conns->clients[conns->size].host = host;
-		conns->clients[conns->size].sock = client_socket;
-		conns->size++;
-
-		// Release our mutex now.
-		ReleaseMutex(conns->ghMutex);
+		// Add client oriented data to conns object.
+		add_client(conns, host, client_socket);
 	}
 	return -1;
 }
