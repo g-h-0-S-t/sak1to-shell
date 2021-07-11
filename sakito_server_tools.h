@@ -7,6 +7,69 @@ Use educationally/legally.
 
 #define FILE_NOT_FOUND 1
 
+#if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
+	// Typedef for function pointer.
+	typedef int (*func)(char*, size_t, SOCKET);
+
+	typedef struct {
+		// Client hostname.
+		char* host;
+
+		// Client socket.
+		SOCKET sock;
+
+	} Conn;
+
+	typedef struct {
+		// Mutex object for race condition checks.
+		HANDLE ghMutex;
+
+		// Server socket for accepting connections.
+		SOCKET listen_socket;
+
+		// Array of Conn objects/structures.
+		Conn* clients;
+
+		// Memory blocks allocated.
+		size_t alloc;
+
+		// Amount of memory used.
+		size_t size;
+
+	} Conn_map;
+#elif defined(__linux__)
+	// Typedef for function pointer.
+	typedef int (*func)(char*, size_t, int);
+
+	typedef struct {
+		// Client hostname.
+		char* host;
+
+		// Client socket.
+		int sock;
+
+	} Conn;
+
+	typedef struct {
+		// Server socket for accepting connections.
+		int listen_socket;
+
+		// Flag for race condition checks.
+		int THRD_FLAG;
+
+		// Array of Conn objects/structures.
+		Conn* clients;
+
+		// Memory blocks allocated.
+		size_t alloc;
+
+		// Amount of memory used.
+		size_t size;
+
+	} Conn_map;
+#endif
+
+
 // Function to read/store stdin in buffer until \n is detected.
 size_t get_line(char* const buf) {
 	size_t cmd_len = 0;
@@ -44,5 +107,7 @@ void list_connections(const Conn_map* conns) {
 	}
 }
 
+
+#endif
 
 #endif
