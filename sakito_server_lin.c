@@ -59,7 +59,7 @@ void bind_socket(int listen_socket) {
 		terminate_server(listen_socket, "Placing socket into listening state failed.\n");
 }
 
-void add_client(Conn_map* conns, char host[], int client_socket) {
+void add_client(Conn_map* conns, char* const host, int client_socket) {
 	// If delete_client() is executing: wait for it to finish modifying conns->clients to-
 	// prevent race conditions from occurring.
 	pthread_mutex_lock(&lock);
@@ -370,7 +370,7 @@ void terminate_console(Conn_map conns, pthread_t acp_thread) {
 	close(conns.listen_socket);
 }
 
-void validate_id(char buf[], Conn_map conns) {
+void validate_id(char* const buf, Conn_map conns) {
 	int client_id;
 	client_id = atoi(buf+9);
 	if (!conns.size || client_id < 0 || client_id > conns.size - 1)
