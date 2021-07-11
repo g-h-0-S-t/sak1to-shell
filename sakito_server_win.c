@@ -69,20 +69,20 @@ void bind_socket(const SOCKET listen_socket) {
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
-void add_client(Conn_map* conns, char host[], SOCKET client_socket) {
-	// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-	WaitForSingleObject(conns->ghMutex, INFINITE);
+void add_client(Conn_map* conns, char* const host, SOCKET client_socket) {
+		// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
+		WaitForSingleObject(conns->ghMutex, INFINITE);
 
-	if (conns->size == conns->alloc)
-		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+		if (conns->size == conns->alloc)
+			conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
 
-	// Add hostname string and client_socket object to Conn structure.
-	conns->clients[conns->size].host = host;
-	conns->clients[conns->size].sock = client_socket;
-	conns->size++;
+		// Add hostname string and client_socket object to Conn structure.
+		conns->clients[conns->size].host = host;
+		conns->clients[conns->size].sock = client_socket;
+		conns->size++;
 
-	// Release our mutex now.
-	ReleaseMutex(conns->ghMutex);
+		// Release our mutex now.
+		ReleaseMutex(conns->ghMutex);
 }
 
 // Thread to recursively accept connections.
@@ -324,7 +324,7 @@ void terminate_console(HANDLE acp_thread, Conn_map conns) {
 	terminate_server(conns.listen_socket, NULL);
 }
 
-void validate_id(char buf[], Conn_map conns) {
+void validate_id(char* const buf, Conn_map conns) {
 	int client_id;
 	client_id = atoi(buf+9);
 	if (!conns.size || client_id < 0 || client_id > conns.size - 1)
