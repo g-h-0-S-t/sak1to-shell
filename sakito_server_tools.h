@@ -45,7 +45,6 @@ Use educationally/legally.
 
 	} Server_map;
 #elif defined(__linux__)
-	#define STAT_ERROR 1
 	#define SOCKET_ERROR -1
 	// Typedef for function pointer for server functions.
 	typedef int (*server_func)(char*, size_t, int);
@@ -99,7 +98,7 @@ int compare(const char* buf, const char* str) {
 void get_line(char* const buf, size_t *cmd_len) {
 	char c;
 
-	while ((c = getchar()) != '\n' && *cmd_len < 8192)
+	while ((c = getchar()) != '\n' && *cmd_len < BUFLEN)
 		buf[(*cmd_len)++] = c;
 }
 
