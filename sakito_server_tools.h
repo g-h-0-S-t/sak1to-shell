@@ -38,10 +38,10 @@ Use educationally/legally.
 		Conn* clients;
 
 		// Memory blocks allocated.
-		size_t alloc;
+		size_t clients_alloc;
 
 		// Amount of memory used.
-		size_t size;
+		size_t clients_sz;
 
 	} Server_map;
 #elif defined(__linux__)
@@ -76,10 +76,10 @@ Use educationally/legally.
 		Conn* clients;
 
 		// Memory blocks allocated.
-		size_t alloc;
+		size_t clients_alloc;
 
 		// Amount of memory used.
-		size_t size;
+		size_t clients_sz;
 
 	} Server_map;
 #endif
@@ -124,8 +124,8 @@ void list_connections(Server_map* s_map) {
 	printf("--     Hostname: ID      --\n");
 	printf("---------------------------\n\n");
 
-	if (s_map->size) {
-		for (size_t i = 0; i < s_map->size; i++)
+	if (s_map->clients_sz) {
+		for (size_t i = 0; i < s_map->clients_sz; i++)
 			printf("%s: %lu\n", s_map->clients[i].host, i);
 		printf("\n\n");
 	}
