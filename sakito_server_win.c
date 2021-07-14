@@ -82,16 +82,16 @@ const SOCKET create_socket() {
 
 // Function to bind socket to specified port.
 void bind_socket(const SOCKET listen_socket) {
-	// Create hint structure.
-	struct sockaddr_in hint;
+	// Create sockaddr_in structure.
+	struct sockaddr_in sin;
 
 	// Assign member values.
-	hint.sin_family = AF_INET;
-	hint.sin_port = htons(PORT);
-	hint.sin_addr.S_un.S_addr = INADDR_ANY;
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(PORT);
+	sin.sin_addr.S_un.S_addr = INADDR_ANY;
 
 	// Bind ip address and port to listen_socket.
-	if (bind(listen_socket, (struct sockaddr*)&hint, sizeof(hint)) != 0)
+	if (bind(listen_socket, (struct sockaddr*)&sin, sizeof(sin)) != 0)
 		terminate_server(listen_socket, "Socket bind failed with error");
 
 	// Place the listen_socket in listen state.
