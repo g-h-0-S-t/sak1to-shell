@@ -22,8 +22,9 @@ const SOCKET create_socket() {
 	if (WSAStartup(ver, &wsData) != 0)
 		return INVALID_SOCKET;
 
-	// Create socket and hint structure
+	// Create connection socket.
 	const SOCKET connect_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+
 	//const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (connect_socket == INVALID_SOCKET)
 		WSACleanup();
