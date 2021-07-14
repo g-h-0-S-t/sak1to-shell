@@ -103,7 +103,7 @@ void get_line(char* const buf, size_t *cmd_len) {
 }
 
 // Function to return function pointer based on parsed command.
-void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) {
+void* parse_cmd(char* const buf, size_t* cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) {
 	get_line(buf, cmd_len);
 
 	if (*cmd_len > 1)
