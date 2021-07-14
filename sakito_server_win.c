@@ -338,7 +338,7 @@ int validate_id(Server_map* s_map) {
 void interact(Server_map* s_map) {
 	int client_id = validate_id(s_map);
 
-	if (client_id == -1) {
+	if (client_id == FAILURE) {
 		puts("Invalid client identifier.");
 		return;
 	}
