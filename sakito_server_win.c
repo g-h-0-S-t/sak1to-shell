@@ -283,11 +283,13 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	int i_result = SUCCESS;
 
 	// Receive command output stream and write output chunks to stdout.
+	HANDLE s_out = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD bytes_written;
 	do {
 		i_result = recv(client_socket, buf, BUFLEN, 0);
 		if (buf[0] == EOS[0])
 			break;
-		fwrite(buf, 1, i_result, stdout);
+		WriteFile(s_out, buf, i_result, &bytes_written, NULL);
 	} while (i_result > 0);
 
 	// write a single newline to stdout for cmd line output alignment.
