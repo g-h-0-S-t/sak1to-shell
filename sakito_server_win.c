@@ -395,7 +395,7 @@ void sakito_console(Server_map *s_map) {
 		printf("sak1to-console-(%s>", s_map->buf);
 
 		// Set all bytes in buffer to zero.
-		memset(s_map->buf, '\0', BUFLEN+1);
+		memset(s_map->buf, '\0', BUFLEN);
 
 
 		// Array of command strings to parse stdin with.
