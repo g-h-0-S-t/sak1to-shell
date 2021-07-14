@@ -149,7 +149,7 @@ int main(void) {
 
 		/* 
 		If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-	    occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
+	    	occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		statement will parse & execute functions based on the order of probability.
 		*/
 		if (connect_socket != INVALID_SOCKET) {
