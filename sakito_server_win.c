@@ -388,7 +388,7 @@ void exec_cmd(Server_map* s_map) {
 	fputc('\n', stdout);
 }
 
-void sakito_console(Server_map *s_map) {
+void sakito_console(Server_map* s_map) {
 	// Saktio console loop.
 	while (1) {
 		GetCurrentDirectory(BUFLEN, s_map->buf);
