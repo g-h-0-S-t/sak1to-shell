@@ -192,7 +192,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		puts("The client's system cannot find the file specified.\n");
 	}
 
-	// Send file_complete byte.
+	// Send file transfer complete byte.
 	if (send(client_socket, FTRANSFER_FINISHED, 1, 0) < 1)
 		return FAILURE;
 
