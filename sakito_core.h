@@ -6,6 +6,16 @@ Use educationally/legally.
 #define SAKITO_CORE_H
 
 #define BUFLEN 8192
+#define SUCCESS 1
+#define FAILURE -1
+#define EXIT_SUCCESS 0
+#define EOS "\xcf"
+#define INIT_CONN "1"
+#define BACKGROUND -100
+#define FTRANSFER_FINISHED "1"
+#define FTRANSFER_START "1"
+#define DIR_NOT_FOUND '0'
+
 
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) {
@@ -26,7 +36,7 @@ Use educationally/legally.
 		if (send(socket, (char*)&f_size_bytes, sizeof(f_size_bytes), 0) < 1)
 			return SOCKET_ERROR;
 
-		int i_result = 1;
+		int i_result = SUCCESS;
 
 		if (f_size > 0) {
 			// Recursively read file until EOF is detected and send file bytes to client in BUFLEN chunks.
@@ -51,9 +61,9 @@ Use educationally/legally.
 		int32_t total = 0;
 		DWORD bytes_written;
 
-		do {
+		do
 			i_result = recv(socket, buf, BUFLEN, 0);
-		} while ((WriteFile(h_file, buf, i_result, &bytes_written, NULL))
+		while ((WriteFile(h_file, buf, i_result, &bytes_written, NULL))
 				&& ((total += bytes_written) != f_size)
 				&& (i_result > 0));
 
