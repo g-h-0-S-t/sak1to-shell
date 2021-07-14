@@ -437,7 +437,7 @@ void exec_cmd(Server_map *s_map) {
 	pclose(fpipe);
 }
 
-void sakito_console(Server_map *s_map) {
+void sakito_console(Server_map* s_map) {
 	// Saktio console loop.
 	while (1) {
 		getcwd(s_map->buf, BUFLEN);
