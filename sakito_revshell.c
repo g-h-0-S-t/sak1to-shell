@@ -90,6 +90,7 @@ int send_file(const SOCKET connect_socket, char* const buf) {
 		f_size = (int32_t)largeint_struct.QuadPart;
 	}
 
+	// Send read file bytes to server.
 	if (sakito_win_sendf(h_file, connect_socket, buf, f_size) < 1)
 		return SOCKET_ERROR;
 
