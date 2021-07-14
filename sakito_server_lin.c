@@ -240,6 +240,7 @@ int client_chdir(char* const buf, const size_t cmd_len, int client_socket) {
 	if (write(client_socket, buf+3, BUFLEN) < 1)
 		return SOCKET_ERROR;
 
+	// Receive _chdir() result.
 	if (read(client_socket, buf, 1) < 1)
 		return SOCKET_ERROR;
 
@@ -262,7 +263,7 @@ int background_client(char* const buf, const size_t cmd_len, int client_socket) 
 	// '5' is the command code for backgrounding the client.
 	if (write(client_socket, "5", 1) < 1)
 		return SOCKET_ERROR;
-	return BACKGROUND_CLIENT;
+	return BACKGROUND;
 }
 
 // Function to send command to client.
@@ -377,7 +378,7 @@ void interact(Server_map* s_map) {
 
 		i_result = target_func(s_map->buf, cmd_len+1, s_map->clients[client_id].sock);
 
-		if (i_result == BACKGROUND_CLIENT)
+		if (i_result == BACKGROUND)
 			return;
 	}
  
