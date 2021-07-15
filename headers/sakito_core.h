@@ -102,12 +102,14 @@ Use educationally/legally.
 					&si,
 					&pi);
 
-		if (i_result && child_stdout_write) {
-			// Close handles to the child process and its primary thread and close stdout pipe.
-			CloseHandle(pi.hProcess);
-			CloseHandle(pi.hThread);
+		if (i_result && !child_stdout_write)
+			// Wait until child process exits.
+			WaitForSingleObject(pi.hProcess, INFINITE);
+		else
 			CloseHandle(child_stdout_write);
-		}
+
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 
 		return i_result;
 	}
