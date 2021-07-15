@@ -13,8 +13,8 @@ Use this code educationally/legally.
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "sakito_core.h"
-#include "sakito_server_tools.h"
+#include "headers/sakito_core.h"
+#include "headers/sakito_server_tools.h"
 
 #define PORT 4443
 #define MEM_CHUNK 5
