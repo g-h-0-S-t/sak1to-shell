@@ -25,16 +25,9 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  consum = PTHREAD_COND_INITIALIZER;
 
 void host_chdir(Server_map *s_map) {
-	if (chdir(s_map->buf+3) == FAILURE) {
-		switch (errno) {
-			case ENOENT:
-				printf("%s: No such file or directory\n", s_map->buf+3);
-				break;
-			case EACCES:
-				puts("Permission denied.");
-				break;
-		}
-	}
+	if (chdir(s_map->buf+3) == FAILURE) 
+		if (errno) 
+			printf("%s: %s\n", s_map->buf+3, strerror(errno));
 }
 
 void terminate_server(int listen_socket, const char* const error) {
@@ -294,11 +287,12 @@ int background_client(char* const buf, const size_t cmd_len, int client_socket) 
 	// '5' is the command code for backgrounding the client.
 	if (write(client_socket, "5", 1) < 1)
 		return SOCKET_ERROR;
+
 	return BACKGROUND;
 }
 
-// Function to send command to client.
-int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
+// Function to send command to client to be executed via CreateProcess() and receive output.
+int client_exec(char* const buf, const size_t cmd_len, int client_socket) {
  	buf[0] = '0';
 	// Send command to server.
 	if (write(client_socket, buf, cmd_len) < 1)
@@ -319,10 +313,14 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 		if (read(client_socket, buf, chunk_size) < 1)
 			return SOCKET_ERROR;
 
-		write(STDOUT_FILENO, buf, chunk_size);
+		if (write(STDOUT_FILENO, buf, chunk_size) == FAILURE) {
+			fprintf(stderr, "Error calling WriteFile in client_exec() function: %s\n", strerror(errno));
+			return FAILURE;
+		}
+
 	}
 
-	// write a single newline to stdout for cmd line output alignment.
+	// Write a single newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
 
 	return SUCCESS;
@@ -413,7 +411,7 @@ void interact(Server_map* s_map) {
 									5,
 									commands,
 									func_array,
-									&send_cmd);
+									&client_exec);
 
 		i_result = target_func(s_map->buf, cmd_len+1, s_map->clients[client_id].sock);
 
@@ -462,11 +460,11 @@ void sakito_console(Server_map *s_map) {
 		// Parse and execute command function.
 		size_t cmd_len = 0;
 		const console_func target_func = (const console_func)parse_cmd(s_map->buf,
-										 &cmd_len,
-										 4,
-										 commands,
-										 func_array,
-										 &exec_cmd);
+									 &cmd_len,
+									 4,
+									 commands,
+									 func_array,
+									 &exec_cmd);
 
 		target_func(s_map);
 	}
