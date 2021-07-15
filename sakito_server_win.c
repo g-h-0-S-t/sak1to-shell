@@ -202,7 +202,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
-	int32_t f_size = ntohl_conv(&*(buf));
+	int32_t f_size = ntohl_conv(buf);
 
 	int i_result = SUCCESS;
 
@@ -285,7 +285,7 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 		if (recv(client_socket, buf, sizeof(uint32_t), 0) < 1)
 			return SOCKET_ERROR;
 
-		int32_t chunk_size = ntohl_conv(&*(buf));
+		int32_t chunk_size = ntohl_conv(buf);
 
 		if (chunk_size == 0)
 			break;
