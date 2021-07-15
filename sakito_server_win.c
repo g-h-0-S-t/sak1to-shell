@@ -7,6 +7,7 @@ Use this code educationally/legally.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 #include <inttypes.h>
 #include "headers/sakito_core.h"
 #include "headers/sakito_server_tools.h"
@@ -17,23 +18,17 @@ Use this code educationally/legally.
 #pragma comment(lib, "ws2_32.lib")
 
 void host_chdir(Server_map *s_map) {
-	if (chdir(s_map->buf+3) == FAILURE) {
-		switch (errno) {
-			case ENOENT:
-				printf("%s: No such file or directory\n", s_map->buf+3);
-				break;
-			case EACCES:
-				puts("Permission denied.");
-				break;
-		}
-	}
+	if (_chdir(s_map->buf+3) == FAILURE) 
+		if (errno)
+			fprintf(stderr, "%s: %s\n", s_map->buf+3, strerror(errno));
 }
+
 
 // Function to close specified socket.
 void terminate_server(SOCKET socket, const char* const error) {
 	int err_code = EXIT_SUCCESS;
 	if (error) {
-		fprintf(stderr, "%s: ld\n", error, WSAGetLastError());
+		fprintf(stderr, "%s: %ld\n", error, WSAGetLastError());
 		err_code = 1;
 	}
 
@@ -270,8 +265,8 @@ int background_client(char* const buf, const size_t cmd_len, SOCKET client_socke
 	return BACKGROUND_CLIENT;
 }
 
-// Function to send command to client.
-int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+// Function to send command to client to be executed via CreateProcess() and receive output.
+int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '0' Is the command code for executing a command using CreateProcess via the client.
 
  	buf[0] = '0';
@@ -282,6 +277,8 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 	memset(buf, '\0', BUFLEN);
 
 	HANDLE s_out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	int i_result = SUCCESS;
 
 	// Receive command output stream and write output chunks to stdout.
 	while (1) {
@@ -296,8 +293,15 @@ int send_cmd(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 		if (recv(client_socket, buf, chunk_size, 0) < 1)
 			return SOCKET_ERROR;
 
-		WriteFile(s_out, buf, chunk_size, NULL, NULL);
+		if (!WriteFile(s_out, buf, chunk_size, NULL, NULL)) {
+			fprintf(stderr, "Error calling WriteFile() in client_exec() function: %s\n", strerror(errno));
+			return FAILURE;
+		}
+
+
 	}
+
+	// Write a single newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
 
 	return SUCCESS;
@@ -376,7 +380,7 @@ void interact(Server_map* s_map) {
 									5,
 									commands,
 									func_array,
-									&send_cmd);
+									&client_exec);
 
 		// Call target function.
 		i_result = target_func(s_map->buf, cmd_len+1, s_map->clients[client_id].sock);
