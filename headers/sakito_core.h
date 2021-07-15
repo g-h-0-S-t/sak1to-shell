@@ -92,15 +92,15 @@ Use educationally/legally.
 
 		// Create the child process.
 		BOOL i_result = CreateProcess(NULL, 
-					cmd,
-					NULL,
-					NULL,
-					TRUE,
-					0,
-					NULL,
-					NULL,
-					&si,
-					&pi);
+						cmd,
+						NULL,
+						NULL,
+						TRUE,
+						0,
+						NULL,
+						NULL,
+						&si,
+						&pi);
 
 		if (i_result && !child_stdout_write)
 			// Wait until child process exits.
