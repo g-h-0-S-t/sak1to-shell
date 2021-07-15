@@ -154,7 +154,7 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
-	int32_t f_size = ntohl_conv(&*(buf));
+	int32_t f_size = ntohl_conv(buf);
 
 	// Initialize i_result to true/1.
 	int i_result = SUCCESS;
