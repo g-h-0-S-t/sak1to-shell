@@ -182,9 +182,6 @@ void exec_cmd(Server_map* const s_map) {
 		fwrite(s_map->buf, 1, rb, stdout);
 	} while (rb == BUFLEN);
  
-	// Write single newline character to stdout for cmd line output alignment.
-	fputc('\n', stdout);
- 
 	// Close the pipe.
 	pclose(fpipe);
 }
