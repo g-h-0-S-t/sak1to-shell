@@ -7,7 +7,6 @@ Use educationally/legally.
 #include <direct.h>
 #include <errno.h>
 #include <stdio.h>
-
 #include "headers/sakito_core.h"
 
 #define HOST "127.0.0.1"
@@ -105,8 +104,10 @@ int ch_dir(char* const dir, SOCKET connect_socket) {
 	char chdir_result[] = "1";
 	_chdir(dir);
 
-	if (errno == ENOENT)
+	if (errno == ENOENT) {
 		chdir_result[0] = '0';
+		errno = 0;
+	}
 
 	// Send change directory result to server.
 	if (send(connect_socket, chdir_result, 1, 0) < 1)
@@ -254,3 +255,4 @@ int main(void) {
 
 	return FAILURE;
 }
+
