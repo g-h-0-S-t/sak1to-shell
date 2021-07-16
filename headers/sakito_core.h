@@ -17,7 +17,7 @@ Use educationally/legally.
 #define DIR_NOT_FOUND '0'
 
 
-#if OS_WIN
+#if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) {
 		return CreateFile(filename,
 				desired_access,
