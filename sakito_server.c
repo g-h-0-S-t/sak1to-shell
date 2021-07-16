@@ -17,7 +17,6 @@ Use this code educationally/legally.
 	#include <pthread.h>
 	#include <string.h>
 #endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
