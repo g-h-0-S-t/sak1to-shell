@@ -5,9 +5,10 @@ Use educationally/legally.
 #ifndef SAKITO_SERVER_TOOLS_H
 #define SAKITO_SERVER_TOOLS_H
 
-#define BACKGROUND_CLIENT -100
-#define FILE_NOT_FOUND 1
 #define MEM_CHUNK 5
+
+#define BACKGROUND -100
+#define FILE_NOT_FOUND 1
 
 #if OS_WIN
 	#include "sakito_swin_utils.h"
