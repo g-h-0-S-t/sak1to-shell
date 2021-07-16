@@ -45,8 +45,8 @@ typedef struct {
 } Server_map;
 
 void bind_socket(const SOCKET listen_socket);
-void sakito_accept_conns(Server_map *s_map);
-void resize_conns(Server_map *s_map, int client_id);
+void sakito_accept_conns(Server_map* const s_map);
+void resize_conns(Server_map* const s_map, int client_id);
 
 void get_cwd(char* const buf) {
 	GetCurrentDirectory(BUFLEN, buf);
@@ -105,13 +105,13 @@ const SOCKET create_socket() {
 }
 
 
-void mutex_lock(Server_map* s_map) {
+void mutex_lock(Server_map* const s_map) {
 	// If delete_client() is executing: wait for it to finish modifying s_map->clients to prevent race conditions from occurring.
 	WaitForSingleObject(s_map->ghMutex, INFINITE);
 }
 
 
-void mutex_unlock(Server_map* s_map) {
+void mutex_unlock(Server_map* const s_map) {
 	// Release our mutex now.
 	ReleaseMutex(s_map->ghMutex);
 }
@@ -144,12 +144,12 @@ int32_t sakito_file_size(s_file file) {
 	return (int32_t)largeint_struct.QuadPart;
 }
 
-void exec_cmd(Server_map* s_map) {
+void exec_cmd(Server_map* const s_map) {
 	sakito_win_cp(NULL, s_map->buf);
 	fputc('\n', stdout);
 }
 
-void terminate_console(Server_map* s_map) {
+void terminate_console(Server_map* const s_map) {
 	// Quit accepting connections.
 	TerminateThread(s_map->acp_thread, 0);
 
@@ -168,7 +168,7 @@ void terminate_console(Server_map* s_map) {
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	// Call sakito wrapper function to accept incoming connections.
-	Server_map* s_map = (Server_map*)lp_param;
+	Server_map* const s_map = (Server_map*)lp_param;
 
 	// Create our socket object.
 	s_map->listen_socket = create_socket();
@@ -182,7 +182,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param) {
 	return FAILURE;
 }
 
-void sakito_init(Server_map* s_map) {
+void sakito_init(Server_map* const s_map) {
 	// Mutex lock for preventing race conditions.
 	s_map->ghMutex = CreateMutex(NULL, FALSE, NULL);
 
