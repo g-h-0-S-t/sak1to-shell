@@ -326,11 +326,11 @@ void interact(Server_map* s_map) {
 		// Parse and execute command function.
 		size_t cmd_len = 0;
 		const server_func target_func = (const server_func)parse_cmd(s_map->buf+1,
-																&cmd_len,
-																5,
-																commands,
-																func_array,
-																&client_exec);
+									&cmd_len,
+									5,
+									commands,
+									func_array,
+									&client_exec);
 
 		i_result = target_func(s_map->buf, cmd_len+1, s_map->clients[client_id].sock);
 
