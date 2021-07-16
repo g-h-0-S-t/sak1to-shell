@@ -23,7 +23,7 @@ typedef int (*server_func)(char*, size_t, SOCKET);
 
 
 // Function to validate client identifier prior to interaction.
-int validate_id(Server_map* s_map) {
+int validate_id(Server_map* const s_map) {
 	int client_id;
 	client_id = atoi(s_map->buf+9);
 
