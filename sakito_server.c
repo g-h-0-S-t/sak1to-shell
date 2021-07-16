@@ -188,7 +188,7 @@ int send_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
  
 	// If the file exists or permission denied:
 	if (file == INVALID_FILE) {
-		perror("File not found or permission denied.\n");
+		fprintf(stderr, "upload: cannot access: '%s': %s\n", buf+8, strerror(errno));
 
 		// Send SERVER_ERROR/'6' control code to client to force client to re-receive command.
 		if (sakito_tcp_send(client_socket, "6", 1) < 1)
@@ -326,11 +326,11 @@ void interact(Server_map* const s_map) {
 		// Parse and execute command function.
 		size_t cmd_len = 0;
 		const server_func target_func = (const server_func)parse_cmd(s_map->buf+1,
-									&cmd_len,
-									5,
-									commands,
-									func_array,
-									&client_exec);
+																&cmd_len,
+																5,
+																commands,
+																func_array,
+																&client_exec);
 
 		i_result = target_func(s_map->buf, cmd_len+1, s_map->clients[client_id].sock);
 
