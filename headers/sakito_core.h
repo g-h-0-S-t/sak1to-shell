@@ -9,9 +9,7 @@ Use educationally/legally.
 #define SUCCESS 1
 #define FAILURE -1
 #define EXIT_SUCCESS 0
-#define EOS "\xcf"
 #define INIT_CONN "1"
-#define BACKGROUND -100
 #define FTRANSFER_FINISHED "1"
 #define FTRANSFER_START "1"
 #define DIR_NOT_FOUND '0'
