@@ -1,5 +1,5 @@
 # sak1to-shell
-Multi-threaded multi-os/platform c2 server and reverse TCP shell client written in pure C (Windows).
+Multi-threaded, multi-os/platform c2 server and reverse TCP shell client written in pure C (Windows).
 
 Compiling client with mingw32:
 ```
