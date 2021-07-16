@@ -53,8 +53,8 @@ typedef struct {
 } Server_map;
 
 void bind_socket(const SOCKET listen_socket);
-void sakito_accept_conns(Server_map *s_map);
-void resize_conns(Server_map *s_map, int client_id);
+void sakito_accept_conns(Server_map* const s_map);
+void resize_conns(Server_map* const s_map, int client_id);
 
 void get_cwd(char *buf) {
 	getcwd(buf, BUFLEN);
@@ -86,7 +86,7 @@ int create_socket() {
 	return listen_socket;
 }
 
-void mutex_lock(Server_map* s_map) {
+void mutex_lock(Server_map* const s_map) {
 	// When THRD_FLAG evaluates to 0: execution has ended.
 	while (s_map->THRD_FLAG)
 		pthread_cond_wait(&consum, &lock);
@@ -98,7 +98,7 @@ void mutex_lock(Server_map* s_map) {
 	s_map->THRD_FLAG = 1;
 }
 
-void mutex_unlock(Server_map* s_map) {
+void mutex_unlock(Server_map* const s_map) {
 	// Unlock/release mutex..
 	pthread_mutex_unlock(&lock);
 
@@ -171,7 +171,7 @@ int sakito_send_file(SOCKET socket, s_file file, char* const buf, int32_t f_size
 }
 
 // Function to execute command.
-void exec_cmd(Server_map *s_map) {
+void exec_cmd(Server_map* const s_map) {
 	// Call Popen to execute command(s) and read the processes' output.
 	FILE* fpipe = popen(s_map->buf, "r");
 
@@ -189,7 +189,7 @@ void exec_cmd(Server_map *s_map) {
 	pclose(fpipe);
 }
 
-void terminate_console(Server_map *s_map) {
+void terminate_console(Server_map* const s_map) {
 	// Quit accepting connections.
 	pthread_cancel(s_map->acp_thread);
 
@@ -207,7 +207,7 @@ void terminate_console(Server_map *s_map) {
 // Thread to recursively accept connections.
 void* accept_conns(void* param) {
 	// Call sakito wrapper function to accept incoming connections.
-	Server_map* s_map = (Server_map*)param;
+	Server_map* const s_map = (Server_map*)param;
 
 	// Create our socket object.
 	s_map->listen_socket = create_socket();
@@ -221,11 +221,10 @@ void* accept_conns(void* param) {
 	return NULL;
 }
 
-void sakito_init(Server_map *s_map) {
+void sakito_init(Server_map* const s_map) {
 	// Set out race condition flag to false.
 	s_map->THRD_FLAG = 0;
 
 	// Start our accept connections thread to recursively accept connections.
 	pthread_create(&s_map->acp_thread , NULL, accept_conns, s_map);
 }
-
