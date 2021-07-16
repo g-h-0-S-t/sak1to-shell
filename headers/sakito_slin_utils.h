@@ -2,6 +2,8 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
+#define CONSOLE_FSTR "sak1to-console:~%s$ "
+#define INTERACT_FSTR "┌%d─%s\n└%s>"
 #define LINUX 1
 #define SOCKET int
 #define INVALID_SOCKET -1
@@ -226,3 +228,4 @@ void sakito_init(Server_map *s_map) {
 	// Start our accept connections thread to recursively accept connections.
 	pthread_create(&s_map->acp_thread , NULL, accept_conns, s_map);
 }
+
