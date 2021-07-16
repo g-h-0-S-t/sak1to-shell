@@ -8,7 +8,7 @@ i686-w64-mingw32-gcc sakito_revshell.c -o sakito_revshell.exe -s -Wno-write-stri
 
 Compiling server with GCC:
 ```
-gcc sakito_server.c -pthread -o server
+gcc sakito_server.c -pthread -o sakito_server
 ```
 
 Command list:
