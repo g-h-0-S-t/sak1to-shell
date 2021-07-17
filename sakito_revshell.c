@@ -214,7 +214,7 @@ int main(void) {
 					// Set all bytes in buffer to zero.
 					memset(buf, '\0', BUFLEN);
 
-					// Receive command + parsed data.
+					// Receive command + data, to be parsed.
 					if (recv(connect_socket, buf, BUFLEN, 0) < 1)
 						break;
 
