@@ -2,10 +2,6 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
-/* 
-Coded by d4rkstat1c.
-Use educationally/legally.
-*/
 #include <ws2tcpip.h>
 #include <stdint.h>
 #include <direct.h>
