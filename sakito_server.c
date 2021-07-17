@@ -28,7 +28,7 @@ Use this code educationally/legally.
 
 #define PORT 4443
 
-void add_client(Server_map* const s_map, char* const host, int client_socket) {
+void add_client(Server_map* const s_map, char* const host, const SOCKET client_socket) {
 	mutex_lock(s_map);
 
 	if (s_map->clients_sz == s_map->clients_alloc)
