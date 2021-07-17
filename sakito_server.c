@@ -322,7 +322,6 @@ void interact(Server_map* const s_map) {
 		// Function pointer array of each c2 command.
 		void* func_array[5] = { &client_chdir, &terminate_client, &send_file, &recv_file, &background_client};
 
-
 		// Parse and execute command function.
 		size_t cmd_len = 0;
 		const server_func target_func = (const server_func)parse_cmd(s_map->buf+1,
@@ -350,7 +349,6 @@ void sakito_console(Server_map* const s_map) {
 
 		// Set all bytes in buffer to zero.
 		memset(s_map->buf, '\0', BUFLEN);
-
 
 		// Array of command strings to parse stdin with.
 		const char commands[4][11] = { "cd ", "exit", "list", "interact " };
