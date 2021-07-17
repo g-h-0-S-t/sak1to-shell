@@ -26,6 +26,13 @@ Use educationally/legally.
 				NULL);
 	}
 
+	int32_t sakito_win_fsize(HANDLE h_file) {
+	   	// Get file size and serialize file size bytes.
+		LARGE_INTEGER largeint_struct;
+		GetFileSizeEx(h_file, &largeint_struct);
+		return (int32_t)largeint_struct.QuadPart;
+	}
+
 	// Function for sending file to client (TCP file transfer).
 	int sakito_win_sendf(HANDLE h_file, const SOCKET socket, char* const buf, int32_t f_size) {
 		uint32_t f_size_bytes = ntohl(f_size); // u_long == uint32_t
