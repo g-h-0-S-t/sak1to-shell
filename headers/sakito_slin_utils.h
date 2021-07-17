@@ -149,14 +149,12 @@ int sakito_close_file(s_file file) {
 int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) {
 	// Varaible to keep track of downloaded data.
 	int i_result = SUCCESS;
-	if (f_size > 0) {
-		int32_t total = 0;
-		do
-			i_result = read(socket, buf, BUFLEN);
-		while ((i_result > 0)
-				&& (write(file, buf, i_result))
-				&& ((total += i_result) != f_size));
-	}
+	int32_t total = 0;
+	do
+		i_result = read(socket, buf, BUFLEN);
+	while ((i_result > 0)
+			&& (write(file, buf, i_result))
+			&& ((total += i_result) != f_size));
 
 	return i_result;
 }
@@ -182,15 +180,20 @@ int sakito_send_file(const SOCKET socket, s_file file, char* const buf, int32_t 
 
 	// Send file bytes to client in BUFLEN chunks.
 	int i_result = SUCCESS;
-	if (f_size) {
+	if (f_size > 0) {
 		int bytes_read;
-		while ((i_result > 0) && (bytes_read = read(file, buf, BUFLEN))) {
+		while ((i_result > 0) && (bytes_read = read(file, buf, BUFLEN)))
 			// Send file's bytes chunk to remote server.
 			i_result = write(socket, buf, bytes_read);
-		}
 	}
 
 	return i_result;
+}
+
+// Wrapper function for close() to match Windows' CloseSocket() API's signature.
+void CloseSocket(SOCKET socket) {
+
+	close(socket);
 }
 
 // Linux sakito-API for executing a command via the host system.
