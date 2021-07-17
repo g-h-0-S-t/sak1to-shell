@@ -33,7 +33,8 @@ Below are functions related to string parsing and IO.
 */
 
 // Function to validate client identifier prior to interaction.
-int validate_id(Server_map* const s_map) {
+int validate_id(Server_map* const s_map) 
+{
 	int client_id;
 	client_id = atoi(s_map->buf+9);
 
@@ -45,7 +46,8 @@ int validate_id(Server_map* const s_map) {
 
 
 // Function to compare two strings (combined logic of strcmp and strncmp).
-int compare(const char* buf, const char* str) {
+int compare(const char* buf, const char* str) 
+{
 	for (int j = 0; str[j] != '\0'; j++)
 		if (str[j] != buf[j])
 			return 0;
@@ -54,7 +56,8 @@ int compare(const char* buf, const char* str) {
 }
 
 // Function to read/store stdin in buffer until \n is detected.
-void get_line(char* const buf, size_t *cmd_len) {
+void get_line(char* const buf, size_t *cmd_len) 
+{
 	char c;
 
 	while ((c = getchar()) != '\n' && *cmd_len < BUFLEN)
@@ -62,7 +65,8 @@ void get_line(char* const buf, size_t *cmd_len) {
 }
 
 // Function to return function pointer based on parsed command.
-void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) {
+void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) 
+{
 	get_line(buf, cmd_len);
 
 	if (*cmd_len > 1)
