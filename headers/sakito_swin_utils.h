@@ -156,11 +156,8 @@ int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, int32_t 
 
 // Windows sakito-API wrapper for calulating the size of a given s_file/HANDLE.
 int32_t sakito_file_size(s_file file) {
-	// Get file size and serialize file size bytes.
-	LARGE_INTEGER largeint_struct;
-	GetFileSizeEx(file, &largeint_struct);
 
-	return (int32_t)largeint_struct.QuadPart;
+	return sakito_win_fsize(file);
 }
 
 void exec_cmd(Server_map* const s_map) {
