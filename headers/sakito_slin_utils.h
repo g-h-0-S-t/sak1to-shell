@@ -56,10 +56,14 @@ void bind_socket(const SOCKET listen_socket);
 void sakito_accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
+
+// Linux sakito-API wrapper for storing current working directory in a provided buffer.
 void get_cwd(char *buf) {
+
 	getcwd(buf, BUFLEN);
 }
 
+// Linux sakito-API wrapper for terminating server.
 void terminate_server(int listen_socket, const char* const error) {
 	close(listen_socket);
 	int err_code = EXIT_SUCCESS;
@@ -71,7 +75,7 @@ void terminate_server(int listen_socket, const char* const error) {
 	exit(err_code);
 }
 
-// Function to create socket.
+// Linux sakito-API wrapper for to creating a socket object.
 int create_socket() {
 	// Create the server socket object.
 	int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -86,50 +90,63 @@ int create_socket() {
 	return listen_socket;
 }
 
+// Linux mutex lock function.
 void mutex_lock(Server_map* const s_map) {
-	// When THRD_FLAG evaluates to 0: execution has ended.
+	// Wait until THRD_FLAG evaluates to false.
 	while (s_map->THRD_FLAG)
 		pthread_cond_wait(&consum, &lock);
-	// If delete_client() is executing: wait for it to finish modifying s_map->clients to-
-	// prevent race conditions from occurring.
+
 	pthread_mutex_lock(&lock);
 
-	// Set race condition flag to communicate with delete_client().
+	// We're now locking the mutex so we can modify shared data in a thread safe manner.
 	s_map->THRD_FLAG = 1;
 }
 
+// Linux mutex unlock function.
 void mutex_unlock(Server_map* const s_map) {
-	// Unlock/release mutex..
 	pthread_mutex_unlock(&lock);
 
-	// Execution is finished so allow delete_client() to continue.
+	// Set THRD_FLAG to false to communicate with mutex_lock() that we have finished modifying shared data.
 	s_map->THRD_FLAG = 0;
 }
 
-int sakito_tcp_send(SOCKET socket, const char* buf, const size_t count) {
+// Linux sakito-API/ wrapper for write() syscall.
+int sakito_tcp_send(const SOCKET socket, const char* buf, const size_t count) {
+
 	return write(socket, buf, count);
 }
 
-int sakito_tcp_recv(SOCKET socket, char* const buf, const size_t count) {
+// Linux sakito-API/ wrapper for read() syscall.
+int sakito_tcp_recv(const SOCKET socket, char* const buf, const size_t count) {
+
 	return read(socket, buf, count);
 }
 
+// Linux sakito-API/ wrapper for write()'ing to stdout.
 int write_stdout(const char* buf, size_t count) {
+
 	return write(STDOUT_FILENO, buf, count);
 }
 
+// Linux open() wrapper/sakito-API to return s_file which is a typedef alias for int/file descriptors.
 s_file sakito_open_file(const char* filename, int rw_flag) {
+	// Supports only read/write modes.
 	if (rw_flag == WRITE)
 		return open(filename, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	else if (rw_flag == READ)
 		return open(filename, O_RDONLY);
+
+	return INVALID_FILE;
 }
 
+// Linux sakito-API/wrapper for close().
 int sakito_close_file(s_file file) {
+
 	return close(file);
 }
 
-int sakito_recv_file(SOCKET socket, s_file file, char* const buf, int32_t f_size) {
+// Linux sakito-API to wrap read/write syscalls and file share logic (receive) for linux.
+int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) {
 	// Varaible to keep track of downloaded data.
 	int i_result = SUCCESS;
 	if (f_size > 0) {
@@ -140,17 +157,22 @@ int sakito_recv_file(SOCKET socket, s_file file, char* const buf, int32_t f_size
 				&& (write(file, buf, i_result))
 				&& ((total += i_result) != f_size));
 	}
+
 	return i_result;
 }
 
+
+// Linux sakito-API to calculate file size of a given s_file/file descriptor.
 int32_t sakito_file_size(s_file file) {
 	int32_t f_size = (int32_t)lseek(file, 0, SEEK_END);
 	// Return file descriptor to start of file.
 	lseek(file, 0, SEEK_SET);
+
 	return f_size;
 }
 
-int sakito_send_file(SOCKET socket, s_file file, char* const buf, int32_t f_size) {
+// Linux sakito-API to wrap read/write syscalls and file share logic (send) for linux.
+int sakito_send_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) {
 	// Calculate file size and serialize the file size integer.
 	uint32_t bytes = htonl(f_size);
 
@@ -167,10 +189,11 @@ int sakito_send_file(SOCKET socket, s_file file, char* const buf, int32_t f_size
 			i_result = write(socket, buf, bytes_read);
 		}
 	}
+
 	return i_result;
 }
 
-// Function to execute command.
+// Linux sakito-API for executing a command via the host system.
 void exec_cmd(Server_map* const s_map) {
 	// Call Popen to execute command(s) and read the processes' output.
 	FILE* fpipe = popen(s_map->buf, "r");
@@ -186,6 +209,7 @@ void exec_cmd(Server_map* const s_map) {
 	pclose(fpipe);
 }
 
+// Linux sakito-API for terminating the console application and server. 
 void terminate_console(Server_map* const s_map) {
 	// Quit accepting connections.
 	pthread_cancel(s_map->acp_thread);
@@ -218,6 +242,7 @@ void* accept_conns(void* param) {
 	return NULL;
 }
 
+// Linux sakito-API for initialization of the console application and server.
 void sakito_init(Server_map* const s_map) {
 	// Set out race condition flag to false.
 	s_map->THRD_FLAG = 0;
