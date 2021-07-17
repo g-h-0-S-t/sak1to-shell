@@ -285,7 +285,7 @@ void delete_client(Server_map* const s_map, const int client_id) {
 
 	// If the file descriptor is open: close it.
 	if (s_map->clients[client_id].sock)
-		CloseSocket(s_map->clients[client_id].sock);
+		closesocket(s_map->clients[client_id].sock);
 
 	// Resize clients member values to remove client.
 	resize_conns(s_map, client_id);
