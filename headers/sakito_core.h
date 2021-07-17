@@ -66,11 +66,13 @@ Use educationally/legally.
 		int32_t total = 0;
 		DWORD bytes_written;
 
-		do
-			i_result = recv(socket, buf, BUFLEN, 0);
-		while ((WriteFile(h_file, buf, i_result, &bytes_written, NULL))
-				&& ((total += bytes_written) != f_size)
-				&& (i_result > 0));
+		if (f_size > 0) {
+			do
+				i_result = recv(socket, buf, BUFLEN, 0);
+			while ((WriteFile(h_file, buf, i_result, &bytes_written, NULL))
+					&& ((total += bytes_written) != f_size)
+					&& (i_result > 0));
+		}
 
 		return i_result;
 	}
