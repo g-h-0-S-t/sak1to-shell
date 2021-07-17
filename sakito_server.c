@@ -162,10 +162,11 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	// Initialize i_result to true/1
 	int i_result;
 
-	if (f_size > 0) {
+	if (f_size != FAILURE) {
 		// Open the file.
 		s_file file = sakito_open_file(buf+10, WRITE);
-		i_result = sakito_recv_file(client_socket, file, buf, f_size);
+		if (f_size > 0)
+			i_result = sakito_recv_file(client_socket, file, buf, f_size);
 		
 		if (file != INVALID_FILE)
 			sakito_close_file(file);
@@ -284,7 +285,7 @@ void delete_client(Server_map* const s_map, const int client_id) {
 
 	// If the file descriptor is open: close it.
 	if (s_map->clients[client_id].sock)
-		closesocket(s_map->clients[client_id].sock);
+		CloseSocket(s_map->clients[client_id].sock);
 
 	// Resize clients member values to remove client.
 	resize_conns(s_map, client_id);
