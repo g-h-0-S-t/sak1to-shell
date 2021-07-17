@@ -190,8 +190,8 @@ int sakito_send_file(const SOCKET socket, s_file file, char* const buf, int32_t 
 	return i_result;
 }
 
-// Wrapper function for close() to match Windows' CloseSocket() API's signature.
-void CloseSocket(SOCKET socket) {
+// Wrapper function for close() to match Windows' closesocket() API's signature.
+void closesocket(SOCKET socket) {
 
 	close(socket);
 }
