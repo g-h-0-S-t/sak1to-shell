@@ -2,10 +2,6 @@
 Coded by d4rkstat1c.
 Use this code educationally/legally.
 */
-/*
-Coded by d4rkstat1c.
-Use this code educationally/legally.
-*/
 #include "headers/os_check.h"
 #if OS_WIN
 	#include <WS2tcpip.h>
