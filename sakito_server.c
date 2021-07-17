@@ -109,8 +109,8 @@ void host_chdir(Server_map* const s_map)
 // Function to list/print all available connections to stdout.
 void list_connections(Server_map* const s_map) 
 {
-	printf("\n\n---------------------------\n");
-	printf("---  C0NNECTED TARGETS  ---\n");
+	printf("\n---------------------------\n");
+	printf("---  C0NNECTED SYSTEMS  ---\n");
 	printf("--     Hostname: ID      --\n");
 	printf("---------------------------\n\n");
 
@@ -118,7 +118,7 @@ void list_connections(Server_map* const s_map)
 	{
 		for (size_t i = 0; i < s_map->clients_sz; i++)
 			printf("%s: %lu\n", s_map->clients[i].host, i);
-		printf("\n\n");
+		fputc('\n', stdout);
 	}
 	else 
 	{
