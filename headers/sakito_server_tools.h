@@ -44,12 +44,11 @@ int validate_id(Server_map* const s_map)
 	return client_id;
 }
 
-
 // Function to compare two strings (combined logic of strcmp and strncmp).
 int compare(const char* buf, const char* str) 
 {
-	for (int j = 0; str[j] != '\0'; j++)
-		if (str[j] != buf[j])
+	while (*str)
+		if (*buf++ != *str++)
 			return 0;
 
 	return 1;
