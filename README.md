@@ -1,7 +1,7 @@
 # sak1to-shell
 Multi-threaded, multi-os/platform (Linux/Windows) c2 server and windows reverse TCP shell client written in pure C.
 
-Compiling client with mingw32:
+Compiling reverse TCP shell client with mingw32:
 ```
 i686-w64-mingw32-gcc sakito_revshell.c -o sakito_revshell.exe -s -Wno-write-strings -ffunction-sections -fdata-sections -fno-exceptions -fmerge-all-constants -static-libgcc -lws2_32
 ```
