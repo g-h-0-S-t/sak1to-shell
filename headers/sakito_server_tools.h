@@ -10,6 +10,12 @@ Use educationally/legally.
 #define BACKGROUND -100
 #define FILE_NOT_FOUND 1
 
+/*
+
+Below contains the various header files which link various sakito-API functions which will be compiled conditionally based on the operating system,
+currently supports only linux and windows systems.  The APIs have a matching signature allowing for cross-platform compilation.
+
+*/
 #if OS_WIN
 	#include "sakito_swin_utils.h"
 #elif OS_LIN
@@ -22,6 +28,9 @@ typedef void (*console_func)(Server_map *s_map);
 // Typedef for function pointer for server functions.
 typedef int (*server_func)(char*, size_t, SOCKET);
 
+/*
+Below are functions related to string parsing and IO.
+*/
 
 // Function to validate client identifier prior to interaction.
 int validate_id(Server_map* const s_map) {
@@ -30,8 +39,8 @@ int validate_id(Server_map* const s_map) {
 
 	if (!s_map->clients_sz || client_id < 0 || client_id > s_map->clients_sz - 1)
 		return FAILURE;
-	else
-		return client_id;
+
+	return client_id;
 }
 
 
