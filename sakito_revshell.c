@@ -68,7 +68,7 @@ int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET con
 		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint32_t), 0) < 1)
 			return SOCKET_ERROR;
 
-		// If we've reached the end of the child's stdout.
+		// If we've reached the end of the child's stdout, stderr.
 		if (bytes_read == 0)
 			break;
 
