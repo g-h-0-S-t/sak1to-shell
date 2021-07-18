@@ -23,9 +23,9 @@ Command list:
 
 - background: background client.
 
-- exit: terminate client or server.
+- exit: terminate client or host.
 
-- cd [dir]: change directory on client.
+- cd [dir]: change directory on client or host.
 
 ![alt text](https://www.wallpaperbetter.com/wallpaper/156/434/483/cherry-blossom-flowers-painting-pink-1080P-wallpaper-middle-size.jpg)
 
