@@ -148,21 +148,21 @@ int sakito_close_file(s_file file)
 }
 
 // Windows sakito-API wrapper for TCP file transfer (send).
-int sakito_send_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) 
+int sakito_send_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
 {
 	// Wraps sakito_win_sendf located in headers/sakito_core.h this function is used by both the widnows server and shell client.
 	return sakito_win_sendf(file, socket, buf, f_size);
 }
 
 // Windows sakito-API wrapper for TCP file transfer (recv).
-int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) 
+int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
 {
 	// Wraps sakito_win_recvf located in headers/sakito_core.h this function is used by both the widnows server and shell client.
 	return sakito_win_recvf(file, socket, buf, f_size);
 }
 
 // Windows sakito-API wrapper for calulating the size of a given s_file/HANDLE.
-int32_t sakito_file_size(s_file file) 
+uint64_t sakito_file_size(s_file file) 
 {
 	return sakito_win_fsize(file);
 }
