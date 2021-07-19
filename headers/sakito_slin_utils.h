@@ -158,25 +158,25 @@ int sakito_close_file(s_file file)
 }
 
 // Linux sakito-API to wrap read/write syscalls and file share logic (receive) for linux.
-int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) 
+int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
 {
 	// Varaible to keep track of downloaded data.
 	int i_result = SUCCESS;
-	int32_t total = 0;
+	uint64_t total = 0;
+
 	do
 		i_result = read(socket, buf, BUFLEN);
 	while ((i_result > 0)
 			&& (write(file, buf, i_result))
-			&& ((total += i_result) != f_size));
+			&& ((total += (uint64_t)i_result) != f_size));
 
 	return i_result;
 }
 
-
 // Linux sakito-API to calculate file size of a given s_file/file descriptor.
-int32_t sakito_file_size(s_file file) 
+uint64_t sakito_file_size(s_file file) 
 {
-	int32_t f_size = (int32_t)lseek(file, 0, SEEK_END);
+	uint64_t f_size = (uint64_t)lseek(file, 0, SEEK_END);
 	// Return file descriptor to start of file.
 	lseek(file, 0, SEEK_SET);
 
@@ -184,19 +184,19 @@ int32_t sakito_file_size(s_file file)
 }
 
 // Linux sakito-API to wrap read/write syscalls and file share logic (send) for linux.
-int sakito_send_file(const SOCKET socket, s_file file, char* const buf, int32_t f_size) 
+int sakito_send_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
 {
 	// Calculate file size and serialize the file size integer.
-	uint32_t bytes = htonl(f_size);
+	uint64_t no_bytes = htonll(f_size);
 
 	// Send the serialized file size bytes.
-	if (write(socket, (char*)&bytes, sizeof(uint32_t)) < 1)
+	if (write(socket, &no_bytes, sizeof(uint64_t)) < 1)
 		return SOCKET_ERROR;
 
 	int i_result = SUCCESS;
 
 	// Send file bytes to client in BUFLEN chunks.
-	if (f_size > 0) 
+	if (f_size > 0)
 	{
 		int bytes_read;
 		while ((i_result > 0) && (bytes_read = read(file, buf, BUFLEN)))
