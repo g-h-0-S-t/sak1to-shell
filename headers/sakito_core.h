@@ -14,7 +14,6 @@ Use educationally/legally.
 #define FTRANSFER_START "1"
 #define DIR_NOT_FOUND '0'
 
-
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 	{
@@ -27,21 +26,21 @@ Use educationally/legally.
 				NULL);
 	}
 
-	int32_t sakito_win_fsize(HANDLE h_file) 
+	uint64_t sakito_win_fsize(HANDLE h_file) 
 	{
 	   	// Get file size and serialize file size bytes.
 		LARGE_INTEGER largeint_struct;
 		GetFileSizeEx(h_file, &largeint_struct);
-		return (int32_t)largeint_struct.QuadPart;
+		return (uint64_t)largeint_struct.QuadPart;
 	}
 
 	// Function for sending file to client (TCP file transfer).
-	int sakito_win_sendf(HANDLE h_file, const SOCKET socket, char* const buf, int32_t f_size) 
+	int sakito_win_sendf(HANDLE h_file, const SOCKET socket, char* const buf, uint64_t f_size) 
 	{
-		uint32_t f_size_bytes = ntohl(f_size); // u_long == uint32_t
+		uint64_t f_size_bytes = htonll(f_size);
 
 		// Send serialized file size int32 bytes to server.
-		if (send(socket, (char*)&f_size_bytes, sizeof(uint32_t), 0) < 1)
+		if (send(socket, (char*)&f_size_bytes, sizeof(uint64_t), 0) < 1)
 			return SOCKET_ERROR;
 
 		int i_result = SUCCESS;
@@ -63,15 +62,15 @@ Use educationally/legally.
 	}
 
 	// Function to receive file from client (TCP file transfer).
-	int sakito_win_recvf(HANDLE h_file, const SOCKET socket, char* const buf, int32_t f_size) 
+	int sakito_win_recvf(HANDLE h_file, const SOCKET socket, char* const buf, uint64_t f_size) 
 	{
 		int i_result = 1;
 
 		// Receive all file bytes/chunks and write to parsed filename.
-		int32_t total = 0;
+		uint64_t total = 0;
 		DWORD bytes_written;
 
-		if (f_size > 0) 
+		if (f_size > 0)
 		{
 			do
 				i_result = recv(socket, buf, BUFLEN, 0);
@@ -83,7 +82,7 @@ Use educationally/legally.
 		return i_result;
 	}
 
-	BOOL sakito_win_cp(HANDLE child_stdout_write, const LPSTR buf) 
+	BOOL sakito_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 	{
 		// Create a child process that uses the previously created pipes for STDIN and STDOUT.
 		PROCESS_INFORMATION pi; 
@@ -130,14 +129,14 @@ Use educationally/legally.
 	}
 #endif
 
-// Function to copy int bytes to new memory block/location to abide strict aliasing.
-static inline uint32_t ntohl_conv(char* const buf) 
+// Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
+static inline uint64_t ntohll_conv(char* const buf) 
 {
-	uint32_t new;
+	uint64_t new;
 	memcpy(&new, buf, sizeof(new));
 
 	// Return deserialized bytes.
-	return ntohl(new);
+	return ntohll(new);
 }
 
 #endif
