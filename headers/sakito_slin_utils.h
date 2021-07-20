@@ -187,7 +187,7 @@ uint64_t sakito_file_size(s_file file)
 int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size) 
 {
 	// Calculate file size and serialize the file size integer.
-	uint64_t no_bytes = htonl(f_size);
+	uint64_t no_bytes = htonll(f_size);
 
 	// Send the serialized file size bytes.
 	if (write(socket, &no_bytes, sizeof(uint64_t)) < 1)
