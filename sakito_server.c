@@ -16,8 +16,6 @@ Use this code educationally/legally.
 	#include <arpa/inet.h>
 	#include <pthread.h>
 	#include <string.h>
-	#include <sys/types.h>
-	#include <sys/sendfile.h>
 	#include "headers/nbo_encoding.h"
 #endif
 
