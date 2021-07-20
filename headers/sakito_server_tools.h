@@ -74,7 +74,6 @@ void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char comma
 			if (compare(buf, commands[i]))
 				return func_array[i];
 
-	// If no command was parsed: send/execute the command string on the client via _popen().
 	return default_func;
 }
 
