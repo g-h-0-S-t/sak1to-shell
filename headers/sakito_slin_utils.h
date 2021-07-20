@@ -2,9 +2,6 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
-#define _LARGEFILE64_SOURCE
-#include <sys/types.h>
-#include <sys/sendfile.h>
 #define CONSOLE_FSTR "sak1to-console:~%s$ "
 #define INTERACT_FSTR "┌%d─%s\n└%s>"
 #define LINUX 1
