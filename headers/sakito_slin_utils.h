@@ -8,6 +8,7 @@ Use educationally/legally.
 #define SOCKET int
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
+#define _FILE_OFFSET_BITS 64
 #define INVALID_FILE -1
 #define READ 1
 #define WRITE 0
@@ -172,22 +173,21 @@ int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t
 
 	return i_result;
 }
-
 // Linux sakito-API to calculate file size of a given s_file/file descriptor.
 uint64_t sakito_file_size(s_file file) 
 {
-	uint64_t f_size = (uint64_t)lseek(file, 0, SEEK_END);
+	uint64_t f_size = (uint64_t)lseek64(file, 0, SEEK_END);
 	// Return file descriptor to start of file.
-	lseek(file, 0, SEEK_SET);
+	lseek64(file, 0, SEEK_SET);
 
 	return f_size;
 }
 
 // Linux sakito-API to wrap read/write syscalls and file share logic (send) for linux.
-int sakito_send_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
+int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size) 
 {
 	// Calculate file size and serialize the file size integer.
-	uint64_t no_bytes = htonll(f_size);
+	uint64_t no_bytes = htonl(f_size);
 
 	// Send the serialized file size bytes.
 	if (write(socket, &no_bytes, sizeof(uint64_t)) < 1)
@@ -195,17 +195,20 @@ int sakito_send_file(const SOCKET socket, s_file file, char* const buf, uint64_t
 
 	int i_result = SUCCESS;
 
-	// Send file bytes to client in BUFLEN chunks.
+	// Stream file at kernel level to client.
 	if (f_size > 0)
 	{
-		int bytes_read;
-		while ((i_result > 0) && (bytes_read = read(file, buf, BUFLEN)))
-			// Send file's bytes chunk to remote server.
-			i_result = write(socket, buf, bytes_read);
+		while ((i_result != FAILURE) && (f_size > 0))
+		{
+			i_result = sendfile(socket, file, NULL, f_size);
+			f_size -= i_result;
+		}
 	}
 
 	return i_result;
 }
+
+
 
 // Wrapper function for close() to match Windows' closesocket() API's signature.
 void closesocket(SOCKET socket) 
