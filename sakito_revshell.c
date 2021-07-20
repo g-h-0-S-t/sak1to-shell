@@ -169,7 +169,7 @@ int recv_file(const SOCKET connect_socket, char* const buf)
 
 	// If file exists.
 	if (f_size > 0)
-		// Windows TCP file transfer (recv) function located in sakito_tools.h.
+		// Windows TCP file transfer (recv) function located in sakito_swin_tools.h.
 		i_result = sakito_win_recvf(h_file, connect_socket, buf, f_size);
 
 	// Close the file.
