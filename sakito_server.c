@@ -9,6 +9,7 @@ Use this code educationally/legally.
 	#include <inttypes.h>
 	#pragma comment(lib, "ws2_32.lib")
 #elif OS_LIN
+	#define _LARGEFILE64_SOURCE
 	#include <unistd.h>
 	#include <limits.h>
 	#include <fcntl.h>
@@ -16,6 +17,8 @@ Use this code educationally/legally.
 	#include <arpa/inet.h>
 	#include <pthread.h>
 	#include <string.h>
+	#include <sys/types.h>
+	#include <sys/sendfile.h>
 	#include "headers/nbo_encoding.h"
 #endif
 
