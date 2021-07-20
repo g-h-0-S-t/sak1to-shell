@@ -9,6 +9,7 @@ Use educationally/legally.
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define _FILE_OFFSET_BITS 64
+#define _LARGEFILE64_SOURCE
 #define INVALID_FILE -1
 #define READ 1
 #define WRITE 0
