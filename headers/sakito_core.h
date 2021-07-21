@@ -129,7 +129,7 @@ Use educationally/legally.
 	}
 #endif
 
-// Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
+// Inline function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
 static inline uint64_t ntohll_conv(char* const buf) 
 {
 	uint64_t new;
@@ -137,6 +137,16 @@ static inline uint64_t ntohll_conv(char* const buf)
 
 	// Return deserialized bytes.
 	return ntohll(new);
+}
+
+// Inline function to copy uint32_t bytes to new memory block/location to abide strict aliasing.
+static inline uint32_t ntohl_conv(char* const buf) 
+{
+	uint32_t new;
+	memcpy(&new, buf, sizeof(new));
+
+	// Return deserialized bytes.
+	return ntohl(new);
 }
 
 #endif
