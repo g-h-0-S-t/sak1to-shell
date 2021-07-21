@@ -255,7 +255,7 @@ int background_client(char* const buf, const size_t cmd_len, const SOCKET client
 }
 
 // Function to send command to client to be executed via CreateProcess() and receive output.
-int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket) 
 {
  	buf[0] = '0';
 	// Send command to server.
@@ -265,27 +265,46 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 	memset(buf, '\0', BUFLEN);
 
 	// Receive command output stream and write output chunks to stdout.
-	while (1) 
+	while (1)
 	{
-		if (sakito_tcp_recv(client_socket, buf, sizeof(uint64_t)) < 1)
+		// Receive initial uint32_t chunk size.
+		if (sakito_tcp_recv(client_socket, buf, sizeof(uint32_t)) != sizeof(uint32_t))
 			return SOCKET_ERROR;
 
-		uint64_t chunk_size = ntohll_conv(buf);
+		// Deserialize chunk size uint32_t bytes.
+		int chunk_size = (int)ntohl_conv(buf);
 
-		if (chunk_size == 0)
+		// Security check.
+		if ((chunk_size < 0) || (chunk_size > BUFLEN))
+			return FAILURE;
+		// End of cmd.exe output.
+		else if (chunk_size == 0)
 			break;
 
-		if (sakito_tcp_recv(client_socket, buf, chunk_size) < 1)
+		int bytes_received, count = 0;
+
+		// Continue to receive cmd shell output.
+		_recv_output:
+		if ((bytes_received = sakito_tcp_recv(client_socket, buf+count, chunk_size)) < 1)
 			return SOCKET_ERROR;
 
-		if (write_stdout(buf, chunk_size) == FAILURE) 
+		// Write chunk bytes to stdout.
+		if (write_stdout(buf+count, chunk_size) == FAILURE)
 		{
-			fprintf(stderr, "Error calling write_stdout(): %s\n\n", strerror(errno));
+			fprintf(stderr, "Error calling write_stdout() in client_exec() function: %s\n\n", strerror(errno));
 			return FAILURE;
 		}
+
+		// Counter for offset.
+		count += bytes_received;
+
+		// If we still have data/output left within the current chunk.
+		if ((chunk_size -= bytes_received) > 0)
+			// Receive more data/output.
+			goto _recv_output;
 	}
 
-	// Write a single newline to stdout for cmd line output alignment.
+	// Write newline to stdout for cmd line output alignment.
 	fputc('\n', stdout);
 
 	return SUCCESS;
