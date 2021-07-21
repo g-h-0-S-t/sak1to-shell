@@ -17,14 +17,14 @@ Use educationally/legally.
 // Function to create connect socket.
 const SOCKET create_socket() 
 {
-	// Initialize winsock
+	// Initialize winsock.
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
 
 	if (WSAStartup(ver, &wsData) != 0)
 		return INVALID_SOCKET;
 
-	// Create socket and hint structure
+	// Create socket.
 	const SOCKET connect_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
 
 	if (connect_socket == INVALID_SOCKET)
