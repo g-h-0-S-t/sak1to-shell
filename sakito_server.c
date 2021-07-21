@@ -280,7 +280,7 @@ int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socke
 
 		if (write_stdout(buf, chunk_size) == FAILURE) 
 		{
-			fprintf(stderr, "Error calling WriteFile in client_exec() function: %s\n\n", strerror(errno));
+			fprintf(stderr, "Error calling write_stdout(): %s\n\n", strerror(errno));
 			return FAILURE;
 		}
 	}
