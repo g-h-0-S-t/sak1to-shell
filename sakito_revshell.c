@@ -141,7 +141,7 @@ int send_file(const SOCKET connect_socket, char* const buf)
 		f_size = sakito_win_fsize(h_file);
 
 	// Send read file bytes to server.
-	if (sakito_win_sendf(h_file, connect_socket, buf, f_size) < 1)
+	if (sakito_win_sendf(connect_socket, h_file, buf, f_size) < 1)
 		return SOCKET_ERROR;
 
 	// Receive file transfer finished byte.
@@ -177,7 +177,7 @@ int recv_file(const SOCKET connect_socket, char* const buf)
 	// If file exists.
 	if (f_size > 0)
 		// Windows TCP file transfer (recv) function located in sakito_swin_tools.h.
-		i_result = sakito_win_recvf(h_file, connect_socket, buf, f_size);
+		i_result = sakito_win_recvf(connect_socket, h_file, buf, f_size);
 
 	// Close the file.
 	CloseHandle(h_file);
