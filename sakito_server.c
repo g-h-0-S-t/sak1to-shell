@@ -4,6 +4,9 @@ Use this code educationally/legally.
 */
 #include "headers/os_check.h"
 #ifdef OS_WIN
+	#include <WS2tcpip.h>
+	#include <Windows.h>
+	#include <inttypes.h>
 	#pragma comment(lib, "ws2_32.lib")
 #elif defined OS_LIN
 	#define _LARGEFILE64_SOURCE
