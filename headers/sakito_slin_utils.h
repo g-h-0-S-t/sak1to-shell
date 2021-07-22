@@ -15,6 +15,7 @@ Use educationally/legally.
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/sendfile.h>
+#include "nbo_encoding.h"
 
 #define CONSOLE_FSTR "sak1to-console:~%s$ "
 #define INTERACT_FSTR "┌%d─%s\n└%s>"
