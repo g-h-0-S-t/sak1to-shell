@@ -2,7 +2,6 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
-#include "os_check.h"
 #ifndef SAKITO_CORE_H
 #define SAKITO_CORE_H
 
@@ -15,10 +14,7 @@ Use educationally/legally.
 #define FTRANSFER_START "1"
 #define DIR_NOT_FOUND '0'
 
-#ifdef OS_WIN
-	#include <WS2tcpip.h>
-	#include <Windows.h>
-	#include <inttypes.h>
+#if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
 	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 	{
 		return CreateFile(filename,
