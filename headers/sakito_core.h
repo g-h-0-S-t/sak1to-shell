@@ -15,7 +15,7 @@ Use educationally/legally.
 #define FTRANSFER_START "1"
 #define DIR_NOT_FOUND '0'
 
-#if OS_WIN
+#ifdef OS_WIN
 	#include <WS2tcpip.h>
 	#include <Windows.h>
 	#include <inttypes.h>
