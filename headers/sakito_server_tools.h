@@ -6,7 +6,7 @@ Use educationally/legally.
 #define SAKITO_SERVER_TOOLS_H
 
 #define MEM_CHUNK 5
-
+#define INVALID_CLIENT_ID -1
 #define BACKGROUND -100
 #define FILE_NOT_FOUND 1
 
@@ -16,9 +16,9 @@ Below contains the various header files which link various sakito-API functions 
 currently supports only linux and windows systems.  The APIs have a matching signature allowing for cross-platform compilation.
 
 */
-#if OS_WIN
+#ifdef OS_WIN
 	#include "sakito_swin_utils.h"
-#elif OS_LIN
+#elif defined OS_LIN
 	#include "sakito_slin_utils.h"
 #endif
 
@@ -39,7 +39,7 @@ int validate_id(Server_map* const s_map)
 	client_id = atoi(s_map->buf+9);
 
 	if (!s_map->clients_sz || client_id < 0 || client_id > s_map->clients_sz - 1)
-		return FAILURE;
+		return INVALID_CLIENT_ID;
 
 	return client_id;
 }
@@ -75,6 +75,16 @@ void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char comma
 				return func_array[i];
 
 	return default_func;
+}
+
+// Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
+static inline uint32_t ntohl_conv(char* const buf) 
+{
+	uint32_t new;
+	memcpy(&new, buf, sizeof(new));
+
+	// Return deserialized bytes.
+	return ntohl(new);
 }
 
 #endif
