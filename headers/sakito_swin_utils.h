@@ -15,7 +15,6 @@ Use educationally/legally.
 
 #define CONSOLE_FSTR "sak1to-console-(%s>"
 #define INTERACT_FSTR "%d-(%s)-%s>"
-#define WINDOWS 1
 #define INVALID_FILE INVALID_HANDLE_VALUE
 #define READ 1
 #define WRITE 0
