@@ -20,6 +20,32 @@ Use educationally/legally.
 #define READ 1
 #define WRITE 0
 
+/*
+Below containsf API macros that alias/wrap various unix/linux specific functions and linux syscalls.
+All functions prefixed with sakito_win_* are located within sakito_core.h.
+*/
+
+// Store current working directory in a provided buffer.
+#define get_cwd(buf) GetCurrentDirectory(BUFLEN, buf)
+
+// Writing/sending data to a given NT kernel handle (SOCKET).
+#define sakito_tcp_send(socket, buf, count) send(socket, buf, count, 0)
+
+// Reading/receiving data from a given NT kernel handle (SOCKET).
+#define sakito_tcp_recv(socket, buf, count) recv(socket, buf, count, 0)
+
+// Calculating the size of a file via HANDLE.
+#define sakito_file_size(file) sakito_win_fsize(file) 
+
+// Writing/sending a file's bytes to client (upload).
+#define sakito_send_file(socket, file, buf, f_size) sakito_win_sendf(socket, file, buf, f_size)
+
+// Reading/receiving a file's bytes from client (download).
+#define sakito_recv_file(socket, file, buf, f_size) sakito_win_recvf(socket, file, buf, f_size)
+
+// Closing a given HANDLE.
+#define sakito_close_file(file) CloseHandle(file)
+
 typedef HANDLE s_file;
 
 typedef struct {
@@ -59,11 +85,6 @@ void bind_socket(const SOCKET listen_socket);
 void sakito_accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
-// Windows sakito-API wrapper for storing current working directory in a provided buffer.
-void get_cwd(char* const buf) 
-{
-	GetCurrentDirectory(BUFLEN, buf);
-}
 
 // Function to gracefully terminate server.
 void terminate_server(const SOCKET socket, const char* const error) 
@@ -80,19 +101,8 @@ void terminate_server(const SOCKET socket, const char* const error)
 	exit(err_code);
 }
 
-// Windows sakito-API wrapper for sending data over TCP.
-int sakito_tcp_send(const SOCKET socket, const char* buf, const size_t count) 
-{
-	return send(socket, buf, count, 0);
-}
 
-// Windows sakito-API wrapper for receiving data over TCP.
-int sakito_tcp_recv(const SOCKET socket, char* const buf, const size_t count) 
-{
-	return recv(socket, buf, count, 0);
-}
-
-// Windows sakito-API WriteFile() WINAPI wrapper for writing data to stdout.
+// WriteFile() WINAPI wrapper for writing data to stdout.
 int write_stdout(const char* buf, size_t count) 
 {
 	HANDLE std_out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -102,7 +112,7 @@ int write_stdout(const char* buf, size_t count)
 	return SUCCESS;
 }
 
-// Windows sakito-API wrapper for creating a socket object.
+// Create a socket object.
 const SOCKET create_socket() 
 {
 	// Initialize winsock.
@@ -126,21 +136,21 @@ const SOCKET create_socket()
 	return listen_socket;
 }
 
-// Windows sakito-API wrapper for mutex locking to prevent race conditions from occurring.
+// Mutex lock functionality.
 void mutex_lock(Server_map* const s_map) 
 {
 	// If mutex is currently locked wait until it is unlocked.
 	WaitForSingleObject(s_map->ghMutex, INFINITE);
 }
 
-// Windows sakito-API wrapper for mutex unlocking to prevent race conditions from occurring.
+// Mutex unlock functionality.
 void mutex_unlock(Server_map* const s_map) 
 {
 	// Unlock mutex.
 	ReleaseMutex(s_map->ghMutex);
 }
 
-// Windows sakito-API wrapper for opening/creating a file (s_file is a typedef for HANDLE).
+// Open/create a file (s_file is a typedef for HANDLE).
 s_file sakito_open_file(const char *filename, int rw_flag) 
 {
 	// Supports only READ/WRITE file modes/operations.
@@ -152,32 +162,7 @@ s_file sakito_open_file(const char *filename, int rw_flag)
 	return INVALID_FILE;
 }
 
-// Windows sakito-API wrapper for closing a s_file/HANDLE.
-int sakito_close_file(s_file file) 
-{
-	return CloseHandle(file);
-}
-
-// Windows sakito-API wrapper for TCP file transfer (send).
-int sakito_send_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
-{
-	// Wraps sakito_win_sendf located in headers/sakito_core.h this function is used by both the widnows server and shell client.
-	return sakito_win_sendf(file, socket, buf, f_size);
-}
-
-// Windows sakito-API wrapper for TCP file transfer (recv).
-int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
-{
-	// Wraps sakito_win_recvf located in headers/sakito_core.h this function is used by both the widnows server and shell client.
-	return sakito_win_recvf(file, socket, buf, f_size);
-}
-
-// Windows sakito-API wrapper for calulating the size of a given s_file/HANDLE.
-uint64_t sakito_file_size(s_file file) 
-{
-	return sakito_win_fsize(file);
-}
-
+// Execute a command via the host machine.
 void exec_cmd(Server_map* const s_map) 
 {
 	char cmd_buf[8+BUFLEN] = "cmd /C ";
@@ -186,7 +171,7 @@ void exec_cmd(Server_map* const s_map)
 	fputc('\n', stdout);
 }
 
-// Windows sakito-API wrapper for terminating the console application and server.
+// Terminate the console application and server.
 void terminate_console(Server_map* const s_map) 
 {
 	// Quit accepting connections.
@@ -197,6 +182,7 @@ void terminate_console(Server_map* const s_map)
 	{
 		for (size_t i = 0; i < s_map->clients_sz; i++)
 			closesocket(s_map->clients[i].sock);
+
 		// Free allocated memory.
 		free(s_map->clients);
 	}
@@ -223,7 +209,7 @@ DWORD WINAPI accept_conns(LPVOID* lp_param)
 	return FAILURE;
 }
 
-// Windows sakito-API wrapper for console application and server initialization.
+// Initialization API of the console application and server.
 void sakito_init(Server_map* const s_map) 
 {
 	// Mutex lock for preventing race conditions.
