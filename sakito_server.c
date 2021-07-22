@@ -3,9 +3,9 @@ Coded by d4rkstat1c.
 Use this code educationally/legally.
 */
 #include "headers/os_check.h"
-#if OS_WIN
+#ifdef OS_WIN
 	#pragma comment(lib, "ws2_32.lib")
-#elif OS_LIN
+#elif defined OS_LIN
 	#define _LARGEFILE64_SOURCE
 	#include <arpa/inet.h>
 	#include "headers/nbo_encoding.h"
