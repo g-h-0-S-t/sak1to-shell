@@ -7,6 +7,7 @@ Use educationally/legally.
 #include <direct.h>
 #include <errno.h>
 #include <stdio.h>
+#include "headers/nbo_encoding.h"
 #include "headers/sakito_core.h"
 
 #define HOST "127.0.0.1"
