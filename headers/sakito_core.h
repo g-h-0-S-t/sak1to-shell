@@ -35,7 +35,7 @@ Use educationally/legally.
 	}
 
 	// Function for sending file to client (TCP file transfer).
-	int sakito_win_sendf(HANDLE h_file, const SOCKET socket, char* const buf, uint64_t f_size) 
+	int sakito_win_sendf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_size) 
 	{
 		uint64_t f_size_bytes = htonll(f_size);
 
@@ -62,7 +62,7 @@ Use educationally/legally.
 	}
 
 	// Function to receive file from client (TCP file transfer).
-	int sakito_win_recvf(HANDLE h_file, const SOCKET socket, char* const buf, uint64_t f_size) 
+	int sakito_win_recvf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_size) 
 	{
 		int i_result = 1;
 
