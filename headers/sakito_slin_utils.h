@@ -2,6 +2,20 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
+#ifndef SAKITO_SLIN_UTILS_H
+#define SAKITO_SLIN_UTILS_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/sendfile.h>
+
 #define CONSOLE_FSTR "sak1to-console:~%s$ "
 #define INTERACT_FSTR "┌%d─%s\n└%s>"
 #define LINUX 1
@@ -31,7 +45,7 @@ typedef struct {
 
 typedef struct {
 	// Server buffer.
-	char buf[BUFLEN + 1];
+	char buf[BUFLEN + 9]; // BUFLEN + space for 'command code' + "cmd /C " + '\0'
 
 	// Server socket for accepting connections.
 	int listen_socket;
@@ -105,7 +119,7 @@ void mutex_lock(Server_map* const s_map)
 
 	pthread_mutex_lock(&lock);
 
-	// We're now locking the mutex so we can modify shared data in a thread safe manner.
+	// We're now locking the mutex so we can modify shared memory in a thread safe manner.
 	s_map->THRD_FLAG = 1;
 }
 
@@ -114,28 +128,25 @@ void mutex_unlock(Server_map* const s_map)
 {
 	pthread_mutex_unlock(&lock);
 
-	// Set THRD_FLAG to false to communicate with mutex_lock() that we have finished modifying shared data.
+	// Set THRD_FLAG to false to communicate with mutex_lock() that we have finished modifying shared memory.
 	s_map->THRD_FLAG = 0;
 }
 
 // Linux sakito-API/ wrapper for write() syscall.
 int sakito_tcp_send(const SOCKET socket, const char* buf, const size_t count) 
 {
-
 	return write(socket, buf, count);
 }
 
 // Linux sakito-API/ wrapper for read() syscall.
 int sakito_tcp_recv(const SOCKET socket, char* const buf, const size_t count) 
 {
-
 	return read(socket, buf, count);
 }
 
 // Linux sakito-API/ wrapper for write()'ing to stdout.
 int write_stdout(const char* buf, size_t count) 
 {
-
 	return write(STDOUT_FILENO, buf, count);
 }
 
@@ -144,7 +155,7 @@ s_file sakito_open_file(const char* filename, int rw_flag)
 {
 	// Supports only read/write modes.
 	if (rw_flag == WRITE)
-		return open(filename, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+		return open(filename, O_CREAT | O_WRONLY | O_TRUNC);
 	else if (rw_flag == READ)
 		return open(filename, O_RDONLY);
 
@@ -154,7 +165,6 @@ s_file sakito_open_file(const char* filename, int rw_flag)
 // Linux sakito-API/wrapper for close().
 int sakito_close_file(s_file file) 
 {
-
 	return close(file);
 }
 
@@ -166,7 +176,9 @@ int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t
 	uint64_t total = 0;
 
 	do
+	{
 		i_result = read(socket, buf, BUFLEN);
+	}
 	while ((i_result > 0)
 			&& (write(file, buf, i_result))
 			&& ((total += (uint64_t)i_result) != f_size));
@@ -213,7 +225,6 @@ int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size)
 // Wrapper function for close() to match Windows' closesocket() API's signature.
 void closesocket(SOCKET socket) 
 {
-
 	close(socket);
 }
 
@@ -280,3 +291,5 @@ void sakito_init(Server_map* const s_map)
 	// Start our accept connections thread to recursively accept connections.
 	pthread_create(&s_map->acp_thread , NULL, accept_conns, s_map);
 }
+
+#endif
