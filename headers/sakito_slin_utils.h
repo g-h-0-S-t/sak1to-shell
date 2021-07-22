@@ -19,7 +19,6 @@ Use educationally/legally.
 
 #define CONSOLE_FSTR "sak1to-console:~%s$ "
 #define INTERACT_FSTR "┌%d─%s\n└%s>"
-#define 1
 #define SOCKET int
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
