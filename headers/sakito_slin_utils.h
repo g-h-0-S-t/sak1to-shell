@@ -28,7 +28,7 @@ Use educationally/legally.
 #define WRITE 0
 
 /*
-Below contains sakito API macros that alias/wrap various unix/specific functions and syscalls.
+Below contains sakito API macros that alias/wrap various linux/unix specific functions and syscalls.
 */
 
 // Store current working directory in a provided buffer.
