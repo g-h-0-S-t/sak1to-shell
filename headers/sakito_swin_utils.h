@@ -20,7 +20,7 @@ Use educationally/legally.
 #define WRITE 0
 
 /*
-Below containsf API macros that alias/wrap various windows specific functions and WINAPIs.
+Below contains sakito-API macros that alias/wrap various windows specific functions and WINAPIs.
 All functions prefixed with sakito_win_* are located within sakito_core.h.
 */
 
@@ -79,6 +79,10 @@ typedef struct {
 	size_t clients_sz;
 
 } Server_map;
+
+/*
+Below contains Windows specific sakito-API functions.
+*/
 
 void bind_socket(const SOCKET listen_socket);
 void sakito_accept_conns(Server_map* const s_map);
