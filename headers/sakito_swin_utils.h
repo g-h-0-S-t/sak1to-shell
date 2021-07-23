@@ -20,7 +20,7 @@ Use educationally/legally.
 #define WRITE 0
 
 /*
-Below containsf API macros that alias/wrap various unix/linux specific functions and linux syscalls.
+Below containsf API macros that alias/wrap various windows specific functions and WINAPIs.
 All functions prefixed with sakito_win_* are located within sakito_core.h.
 */
 
