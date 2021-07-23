@@ -6,7 +6,6 @@ Use educationally/legally.
 #include <stdint.h>
 #include <direct.h>
 #include <errno.h>
-#include <stdio.h>
 #include "headers/nbo_encoding.h"
 #include "headers/sakito_core.h"
 
