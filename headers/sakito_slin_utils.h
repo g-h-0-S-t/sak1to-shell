@@ -90,7 +90,7 @@ typedef struct {
 } Server_map;
 
 /*
-Below contains linux specific sakito API functions.
+Below contains linux specific sakito-API functions.
 */
 
 void bind_socket(const SOCKET listen_socket);
