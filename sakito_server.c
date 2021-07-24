@@ -436,6 +436,7 @@ int main(void)
 	// Instantiate a Server_map structure.
 	Server_map s_map;
 
+	// Initialize the server (Accept connections).
 	sakito_init(&s_map);
 
 	// Initiate sakito console.
