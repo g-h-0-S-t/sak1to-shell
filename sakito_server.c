@@ -336,7 +336,7 @@ void client_interact(Server_map* const s_map)
 		// Function pointer array of each c2 command.
 		void* func_array[5] = { &client_chdir, &terminate_client, &send_file, &recv_file, &background_client };
 
-		// Parse c2 command function pointer.
+		// Parse stdin string to return c2 command function pointer.
 		size_t cmd_len = 0;
 		const server_func target_func = (const server_func)s_parse_cmd(s_map->buf+8,
 									&cmd_len,
@@ -374,7 +374,7 @@ void sakito_console(Server_map* const s_map)
 		// Function pointer array of each c2 command.
 		void* func_array[4] = { &host_chdir, &s_terminate_console, &list_connections, &client_interact };
 
-		// Parse console command function pointer.
+		// Parse stdin string to return console command function pointer.
 		size_t cmd_len = 0;
 		const console_func target_func = (const console_func)s_parse_cmd(s_map->buf,
 									 &cmd_len,
