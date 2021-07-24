@@ -35,19 +35,19 @@ Below contains sakito API macros that alias/wrap various unix/specific functions
 #define get_cwd(buf) getcwd(buf, BUFLEN)
 
 // Write/send data to a given socket file descriptor.
-#define sakito_tcp_send(socket, buf, count) write(socket, buf, count)
+#define s_tcp_send(socket, buf, count) write(socket, buf, count)
 
 // Read/receive data from a given socket file descriptor.
-#define sakito_tcp_recv(socket, buf, count) read(socket, buf, count)
+#define s_tcp_recv(socket, buf, count) read(socket, buf, count)
 
 // Write to stdout.
-#define write_stdout(buf, count) write(STDOUT_FILENO, buf, count)
+#define s_write_stdout(buf, count) write(STDOUT_FILENO, buf, count)
 
 // Close a file descriptor.
-#define sakito_close_file(file) close(file)
+#define s_close_file(file) close(file)
 
 // Closing a socket to match Windows' closesocket() WINAPI's signature.
-#define closesocket(socket) close(socket)
+#define s_closesocket(socket) close(socket)
 
 typedef int s_file;
 
@@ -94,7 +94,7 @@ Below contains linux specific sakito API functions.
 */
 
 void bind_socket(const SOCKET listen_socket);
-void sakito_accept_conns(Server_map* const s_map);
+void s_accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
 // wrapper for terminating server.
@@ -128,7 +128,7 @@ int create_socket()
 }
 
 // Mutex unlock functionality.
-void mutex_lock(Server_map* const s_map) 
+void s_mutex_lock(Server_map* const s_map) 
 {
 	// Wait until THRD_FLAG evaluates to false.
 	while (s_map->THRD_FLAG)
@@ -141,7 +141,7 @@ void mutex_lock(Server_map* const s_map)
 }
 
 // Mutex unlocking functionality.
-void mutex_unlock(Server_map* const s_map) 
+void s_mutex_unlock(Server_map* const s_map) 
 {
 	pthread_mutex_unlock(&lock);
 
@@ -150,7 +150,7 @@ void mutex_unlock(Server_map* const s_map)
 }
 
 // Call open() to return s_file which is a typedef alias for int/file descriptors.
-s_file sakito_open_file(const char* filename, int rw_flag) 
+s_file s_open_file(const char* filename, int rw_flag) 
 {
 	// Supports only read/write modes.
 	if (rw_flag == WRITE)
@@ -162,7 +162,7 @@ s_file sakito_open_file(const char* filename, int rw_flag)
 }
 
 // TCP file transfer logic (receive).
-int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
+int s_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t f_size) 
 {
 	// Varaible to keep track of downloaded data.
 	int i_result = SUCCESS;
@@ -178,7 +178,7 @@ int sakito_recv_file(const SOCKET socket, s_file file, char* const buf, uint64_t
 }
 
 // Calculate file size of a given s_file/file descriptor.
-uint64_t sakito_file_size(s_file file) 
+uint64_t s_file_size(s_file file) 
 {
 	uint64_t f_size = (uint64_t)lseek64(file, 0, SEEK_END);
 	// Return file descriptor to start of file.
@@ -188,7 +188,7 @@ uint64_t sakito_file_size(s_file file)
 }
 
 // TCP file transfer logic (send).
-int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size) 
+int s_send_file(int socket, int file, char* const buf, uint64_t f_size) 
 {
 	// Calculate file size and serialize the file size integer.
 	uint64_t no_bytes = htonll(f_size);
@@ -213,7 +213,7 @@ int sakito_send_file(int socket, int file, char* const buf, uint64_t f_size)
 }
 
 // Execute a command via the host system.
-void exec_cmd(Server_map* const s_map) 
+void s_exec_cmd(Server_map* const s_map) 
 {
 	// Call Popen to execute command(s) and read the processes' output.
 	FILE* fpipe = popen(s_map->buf, "r");
@@ -231,7 +231,7 @@ void exec_cmd(Server_map* const s_map)
 }
 
 // Terminating the console application and server. 
-void terminate_console(Server_map* const s_map) 
+void s_terminate_console(Server_map* const s_map) 
 {
 	// Quit accepting connections.
 	pthread_cancel(s_map->acp_thread);
@@ -249,7 +249,7 @@ void terminate_console(Server_map* const s_map)
 }
 
 // Function to read/store stdin in buffer until \n is detected.
-void sakito_read_stdin(char* const buf, size_t *cmd_len) 
+void s_read_stdin(char* const buf, size_t *cmd_len) 
 {
 	fflush(stdout);
 
@@ -271,13 +271,13 @@ void* accept_conns(void* param)
 	bind_socket(s_map->listen_socket);
 
 	// Call wrapper function to accept incoming connections.
-	sakito_accept_conns(s_map);
+	s_accept_conns(s_map);
 
 	return NULL;
 }
 
 // Initialization API of the console application and server.
-void sakito_init(Server_map* const s_map) 
+void s_init(Server_map* const s_map) 
 {
 	// Set out race condition flag to false.
 	s_map->THRD_FLAG = 0;
