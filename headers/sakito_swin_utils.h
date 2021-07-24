@@ -192,6 +192,8 @@ void terminate_console(Server_map* const s_map)
 
 void sakito_read_stdin(char* const buf, size_t *cmd_len) 
 {
+	HANDLE std_in = GetStdHandle(STD_INPUT_HANDLE);
+	
 	char ch;
 	while((*cmd_len < BUFLEN) && (ReadFile(std_in, &ch, 1, NULL, NULL)) && (ch != '\n'))
 		buf[(*cmd_len)++] = ch;
