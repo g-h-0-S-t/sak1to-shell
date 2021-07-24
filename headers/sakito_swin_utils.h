@@ -20,7 +20,7 @@ Use educationally/legally.
 #define WRITE 0
 
 /*
-Below contains sakito-API macros that alias/wrap various windows specific functions and WINAPIs.
+Below containsf API macros that alias/wrap various unix/linux specific functions and linux syscalls.
 All functions prefixed with sakito_win_* are located within sakito_core.h.
 */
 
@@ -79,10 +79,6 @@ typedef struct {
 	size_t clients_sz;
 
 } Server_map;
-
-/*
-Below contains Windows specific sakito-API functions.
-*/
 
 void bind_socket(const SOCKET listen_socket);
 void sakito_accept_conns(Server_map* const s_map);
@@ -210,6 +206,13 @@ DWORD WINAPI accept_conns(LPVOID* lp_param)
 	sakito_accept_conns(s_map);
 
 	return FAILURE;
+}
+
+void read_stdin(char* const buf, size_t *cmd_len) 
+{
+	char ch;
+	while((*cmd_len < BUFLEN) && (ReadFile(std_in, &ch, 1, NULL, NULL)) && (ch != '\n'))
+		buf[(*cmd_len)++] = ch;
 }
 
 // Initialization API of the console application and server.
