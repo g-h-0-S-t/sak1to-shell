@@ -14,6 +14,13 @@ Use educationally/legally.
 #define FTRANSFER_START "1"
 #define DIR_NOT_FOUND '0'
 
+#ifdef SERVER
+	#define MEM_CHUNK 5
+	#define INVALID_CLIENT_ID -1
+	#define BACKGROUND -100
+	#define FILE_NOT_FOUND 1
+#endif
+
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
 	HANDLE s_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 	{
