@@ -15,7 +15,7 @@ Use educationally/legally.
 #define DIR_NOT_FOUND '0'
 
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
-	HANDLE sakito_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
+	HANDLE s_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 	{
 		return CreateFile(filename,
 				desired_access,
@@ -26,7 +26,7 @@ Use educationally/legally.
 				NULL);
 	}
 
-	uint64_t sakito_win_fsize(HANDLE h_file) 
+	uint64_t s_win_fsize(HANDLE h_file) 
 	{
 	   	// Get file size and serialize file size bytes.
 		LARGE_INTEGER largeint_struct;
@@ -35,7 +35,7 @@ Use educationally/legally.
 	}
 
 	// Function for sending file to client (TCP file transfer).
-	int sakito_win_sendf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_size) 
+	int s_win_sendf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_size) 
 	{
 		uint64_t f_size_bytes = htonll(f_size);
 
@@ -62,7 +62,7 @@ Use educationally/legally.
 	}
 
 	// Function to receive file from client (TCP file transfer).
-	int sakito_win_recvf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_size) 
+	int s_win_recvf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_size) 
 	{
 		int i_result = 1;
 
@@ -82,7 +82,7 @@ Use educationally/legally.
 		return i_result;
 	}
 
-	BOOL sakito_win_cp(HANDLE child_stdout_write, const LPSTR buf)
+	BOOL s_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 	{
 		// Create a child process that uses the previously created pipes for STDIN and STDOUT.
 		PROCESS_INFORMATION pi; 
@@ -128,7 +128,7 @@ Use educationally/legally.
 #endif
 
 // Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
-static inline uint64_t ntohll_conv(char* const buf) 
+static inline uint64_t s_ntohll_conv(char* const buf) 
 {
 	uint64_t new;
 	memcpy(&new, buf, sizeof(new));
