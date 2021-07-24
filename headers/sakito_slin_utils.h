@@ -259,7 +259,7 @@ void s_read_stdin(char* const buf, size_t *cmd_len)
 }
 
 // Thread to recursively accept connections.
-void* accept_conns(void* param) 
+void* accept_conns_thread(void* param) 
 {
 	// Call sakito wrapper function to accept incoming connections.
 	Server_map* const s_map = (Server_map*)param;
@@ -271,7 +271,7 @@ void* accept_conns(void* param)
 	bind_socket(s_map->listen_socket);
 
 	// Call wrapper function to accept incoming connections.
-	s_accept_conns(s_map);
+	accept_conns(s_map);
 
 	return NULL;
 }
@@ -283,7 +283,7 @@ void s_init(Server_map* const s_map)
 	s_map->THRD_FLAG = 0;
 
 	// Start our accept connections thread to recursively accept connections.
-	pthread_create(&s_map->acp_thread , NULL, accept_conns, s_map);
+	pthread_create(&s_map->acp_thread , NULL, accept_conns_thread, s_map);
 }
 
 #endif
