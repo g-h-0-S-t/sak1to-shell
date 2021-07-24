@@ -5,10 +5,18 @@ Use educationally/legally.
 #ifndef SAKITO_SERVER_TOOLS_H
 #define SAKITO_SERVER_TOOLS_H
 
-#define MEM_CHUNK 5
-#define INVALID_CLIENT_ID -1
-#define BACKGROUND -100
-#define FILE_NOT_FOUND 1
+#ifdef OS_WIN
+	#include <WS2tcpip.h>
+	#include "sakito_swin_utils.h"
+#elif defined OS_LIN
+	#include <sys/socket.h>
+	#include <netdb.h>
+	#include <arpa/inet.h>
+	#include "sakito_slin_utils.h"
+#endif
+
+#include <stdlib.h>
+#include <string.h>
 
 /*
 
@@ -16,11 +24,6 @@ Below contains the various header files which link various sakito-API functions 
 currently supports only linux and windows systems.  The APIs have a matching signature allowing for cross-platform compilation.
 
 */
-#ifdef OS_WIN
-	#include "sakito_swin_utils.h"
-#elif defined OS_LIN
-	#include "sakito_slin_utils.h"
-#endif
 
 // Typedef for function pointer for console functions.
 typedef void (*console_func)(Server_map *s_map);
@@ -66,6 +69,60 @@ void* s_parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char com
 				return func_array[i];
 
 	return default_func;
+}
+
+void add_client(Server_map* const s_map, char* const host, const SOCKET client_socket) 
+{
+	// Lock our mutex to prevent race conditions from occurring with delete_client()
+	s_mutex_lock(s_map);
+
+	if (s_map->clients_sz == s_map->clients_alloc)
+		s_map->clients = realloc(s_map->clients, (s_map->clients_alloc += MEM_CHUNK) * sizeof(Conn));
+
+	// Add hostname string and client_socket file descriptor to s_map->clients structure.
+	s_map->clients[s_map->clients_sz].host = host;
+	s_map->clients[s_map->clients_sz].sock = client_socket;
+	s_map->clients_sz++;
+
+	// Unlock our mutex now.
+	s_mutex_unlock(s_map);
+}
+
+void s_accept_conns(Server_map* const s_map) 
+{
+	// Assign member values to connection map object/structure.
+	s_map->clients_alloc = MEM_CHUNK;
+	s_map->clients_sz = 0;
+	s_map->clients = malloc(s_map->clients_alloc * sizeof(Conn));
+
+	while (1) 
+	{
+		struct sockaddr_in client;
+		int c_size = sizeof(client);
+
+		// Client socket object.
+		const SOCKET client_socket = accept(s_map->listen_socket, (struct sockaddr*)&client, &c_size);
+		if (client_socket == INVALID_SOCKET)
+			terminate_server(s_map->listen_socket, "Error accepting client connection");
+
+		// Client's remote name and port.
+		char host[NI_MAXHOST] = { 0 };
+		char service[NI_MAXHOST] = { 0 };
+
+		// Get hostname and port to print to stdout.
+		if (getnameinfo((struct sockaddr*)&client, c_size, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) 
+		{
+			printf("%s connected on port %s\n", host, service);
+		}
+		else 
+		{
+			inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
+			printf("%s connected on port %hu\n", host, ntohs(client.sin_port));
+		}
+
+		// Add client oriented data to s_map object.
+		add_client(s_map, host, client_socket);
+	}
 }
 
 // Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
