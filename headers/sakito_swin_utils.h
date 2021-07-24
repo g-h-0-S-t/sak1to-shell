@@ -84,7 +84,7 @@ typedef struct {
 } Server_map;
 
 void bind_socket(const SOCKET listen_socket);
-void s_accept_conns(Server_map* const s_map);
+void accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
 
@@ -201,7 +201,7 @@ void s_read_stdin(char* const buf, size_t *cmd_len)
 }
 
 // Thread to recursively accept connections.
-DWORD WINAPI accept_conns(LPVOID* lp_param) 
+DWORD WINAPI accept_conns_thread(LPVOID* lp_param) 
 {
 	// Call sakito wrapper function to accept incoming connections.
 	Server_map* const s_map = (Server_map*)lp_param;
@@ -225,7 +225,7 @@ void s_init(Server_map* const s_map)
 	s_map->ghMutex = CreateMutex(NULL, FALSE, NULL);
 
 	// Begin accepting connections.
-	s_map->acp_thread = CreateThread(0, 0, accept_conns, s_map, 0, 0);
+	s_map->acp_thread = CreateThread(0, 0, accept_conns_thread, s_map, 0, 0);
 }
 
 #endif
