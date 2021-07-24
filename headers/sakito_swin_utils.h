@@ -190,6 +190,13 @@ void terminate_console(Server_map* const s_map)
 	terminate_server(s_map->listen_socket, NULL);
 }
 
+void sakito_read_stdin(char* const buf, size_t *cmd_len) 
+{
+	char ch;
+	while((*cmd_len < BUFLEN) && (ReadFile(std_in, &ch, 1, NULL, NULL)) && (ch != '\n'))
+		buf[(*cmd_len)++] = ch;
+}
+
 // Thread to recursively accept connections.
 DWORD WINAPI accept_conns(LPVOID* lp_param) 
 {
@@ -206,13 +213,6 @@ DWORD WINAPI accept_conns(LPVOID* lp_param)
 	sakito_accept_conns(s_map);
 
 	return FAILURE;
-}
-
-void read_stdin(char* const buf, size_t *cmd_len) 
-{
-	char ch;
-	while((*cmd_len < BUFLEN) && (ReadFile(std_in, &ch, 1, NULL, NULL)) && (ch != '\n'))
-		buf[(*cmd_len)++] = ch;
 }
 
 // Initialization API of the console application and server.
