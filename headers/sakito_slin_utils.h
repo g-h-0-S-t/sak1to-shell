@@ -1,4 +1,4 @@
-/* 
+/*
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
@@ -13,7 +13,6 @@ Use educationally/legally.
 #include <fcntl.h>
 #include <netdb.h>
 #include <pthread.h>
-#include <sys/types.h>
 #include <sys/sendfile.h>
 #include "nbo_encoding.h"
 
@@ -94,7 +93,7 @@ Below contains linux specific sakito API functions.
 */
 
 void bind_socket(const SOCKET listen_socket);
-void accept_conns(Server_map* const s_map);
+void s_accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
 // wrapper for terminating server.
@@ -259,7 +258,7 @@ void s_read_stdin(char* const buf, size_t *cmd_len)
 }
 
 // Thread to recursively accept connections.
-void* accept_conns_thread(void* param) 
+void* accept_conns(void* param) 
 {
 	// Call sakito wrapper function to accept incoming connections.
 	Server_map* const s_map = (Server_map*)param;
@@ -271,7 +270,7 @@ void* accept_conns_thread(void* param)
 	bind_socket(s_map->listen_socket);
 
 	// Call wrapper function to accept incoming connections.
-	accept_conns(s_map);
+	s_accept_conns(s_map);
 
 	return NULL;
 }
@@ -283,7 +282,7 @@ void s_init(Server_map* const s_map)
 	s_map->THRD_FLAG = 0;
 
 	// Start our accept connections thread to recursively accept connections.
-	pthread_create(&s_map->acp_thread , NULL, accept_conns_thread, s_map);
+	pthread_create(&s_map->acp_thread , NULL, accept_conns, s_map);
 }
 
 #endif
