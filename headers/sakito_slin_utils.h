@@ -28,7 +28,7 @@ Use educationally/legally.
 #define WRITE 0
 
 /*
-Below contains sakito API macros that alias/wrap various linux/unix specific functions and syscalls.
+Below contains sakito API macros that alias/wrap various unix/specific functions and syscalls.
 */
 
 // Store current working directory in a provided buffer.
@@ -90,7 +90,7 @@ typedef struct {
 } Server_map;
 
 /*
-Below contains linux specific sakito-API functions.
+Below contains linux specific sakito API functions.
 */
 
 void bind_socket(const SOCKET listen_socket);
@@ -246,6 +246,16 @@ void terminate_console(Server_map* const s_map)
 	}
 
 	terminate_server(s_map->listen_socket, NULL);
+}
+
+// Function to read/store stdin in buffer until \n is detected.
+void sakito_read_stdin(char* const buf, size_t *cmd_len) 
+{
+	fflush(stdout);
+
+	char ch;
+	while((*cmd_len < BUFLEN) && (read(STDIN_FILENO, &ch, 1) > 0) && (ch != '\n'))
+		buf[(*cmd_len)++] = ch;
 }
 
 // Thread to recursively accept connections.
