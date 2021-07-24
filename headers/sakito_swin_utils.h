@@ -213,7 +213,7 @@ DWORD WINAPI accept_conns_thread(LPVOID* lp_param)
 	bind_socket(s_map->listen_socket);
 
 	// Call wrapper function to accept incoming connections.
-	s_accept_conns(s_map);
+	accept_conns(s_map);
 
 	return FAILURE;
 }
