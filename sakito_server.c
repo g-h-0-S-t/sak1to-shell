@@ -63,7 +63,7 @@ void bind_socket(const SOCKET listen_socket)
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
-void s_accept_conns(Server_map* const s_map) 
+void accept_conns(Server_map* const s_map) 
 {
 	// Assign member values to connection map object/structure.
 	s_map->clients_alloc = MEM_CHUNK;
