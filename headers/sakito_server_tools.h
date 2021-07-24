@@ -33,7 +33,7 @@ Below are functions related to string parsing and IO.
 */
 
 // Function to validate client identifier prior to interaction.
-int validate_id(Server_map* const s_map) 
+int s_validate_id(Server_map* const s_map) 
 {
 	int client_id;
 	client_id = atoi(s_map->buf+9);
@@ -45,7 +45,7 @@ int validate_id(Server_map* const s_map)
 }
 
 // Function to compare two strings (combined logic of strcmp and strncmp).
-int compare(const char* buf, const char* str) 
+int s_compare(const char* buf, const char* str) 
 {
 	while (*str)
 		if (*buf++ != *str++)
@@ -55,21 +55,21 @@ int compare(const char* buf, const char* str)
 }
 
 // Function to return function pointer based on parsed command.
-void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) 
+void* s_parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) 
 {
-	sakito_read_stdin(buf, cmd_len);
+	s_read_stdin(buf, cmd_len);
 
 	if (*cmd_len > 1)
 		// Parse stdin string and return its corresponding function pointer.
 		for (int i = 0; i < cmds_len; i++)
-			if (compare(buf, commands[i]))
+			if (s_compare(buf, commands[i]))
 				return func_array[i];
 
 	return default_func;
 }
 
 // Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
-static inline uint32_t ntohl_conv(char* const buf) 
+static inline uint32_t s_ntohl_conv(char* const buf) 
 {
 	uint32_t new;
 	memcpy(&new, buf, sizeof(new));
