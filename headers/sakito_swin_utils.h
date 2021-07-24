@@ -10,7 +10,6 @@ Use educationally/legally.
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <errno.h>
 
 #define CONSOLE_FSTR "sak1to-console-(%s>"
@@ -84,7 +83,7 @@ typedef struct {
 } Server_map;
 
 void bind_socket(const SOCKET listen_socket);
-void accept_conns(Server_map* const s_map);
+void s_accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
 
@@ -213,7 +212,7 @@ DWORD WINAPI accept_conns_thread(LPVOID* lp_param)
 	bind_socket(s_map->listen_socket);
 
 	// Call wrapper function to accept incoming connections.
-	accept_conns(s_map);
+	s_accept_conns(s_map);
 
 	return FAILURE;
 }
