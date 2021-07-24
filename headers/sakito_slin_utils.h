@@ -94,7 +94,7 @@ Below contains linux specific sakito API functions.
 */
 
 void bind_socket(const SOCKET listen_socket);
-void s_accept_conns(Server_map* const s_map);
+void accept_conns(Server_map* const s_map);
 void resize_conns(Server_map* const s_map, int client_id);
 
 // wrapper for terminating server.
