@@ -54,19 +54,10 @@ int compare(const char* buf, const char* str)
 	return 1;
 }
 
-// Function to read/store stdin in buffer until \n is detected.
-void get_line(char* const buf, size_t *cmd_len) 
-{
-	char c;
-
-	while ((c = getchar()) != '\n' && *cmd_len < BUFLEN)
-		buf[(*cmd_len)++] = c;
-}
-
 // Function to return function pointer based on parsed command.
 void* parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char commands[5][11], void** func_array, void* default_func) 
 {
-	get_line(buf, cmd_len);
+	sakito_read_stdin(buf, cmd_len);
 
 	if (*cmd_len > 1)
 		// Parse stdin string and return its corresponding function pointer.
