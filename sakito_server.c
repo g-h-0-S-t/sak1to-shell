@@ -28,6 +28,7 @@ and depending on the OS sakito_s*_tools.h. All functions that are not prefixed w
 local to this (sakito_server.c) file and the Standard GNU C Library.
 */
 #include <stdio.h>
+#include <errno.h>
 #include "headers/sakito_server_tools.h"
 
 #define PORT 4443
