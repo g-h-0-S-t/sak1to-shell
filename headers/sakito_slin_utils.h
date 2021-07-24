@@ -154,7 +154,7 @@ s_file sakito_open_file(const char* filename, int rw_flag)
 {
 	// Supports only read/write modes.
 	if (rw_flag == WRITE)
-		return open(filename, O_CREAT | O_WRONLY | O_TRUNC);
+		return open(filename, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
 	else if (rw_flag == READ)
 		return open(filename, O_RDONLY);
 
