@@ -230,7 +230,7 @@ int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket)
 			return FAILURE;
 
 		// Deserialize chunk size uint32_t bytes.
-		int chunk_size = (int)s_ntohl_conv(buf);
+		int64_t chunk_size = (int64_t)s_ntohl_conv(buf);
 
 		// Security chunk size range check.
 		if ((chunk_size < 0) || (chunk_size > BUFLEN))
