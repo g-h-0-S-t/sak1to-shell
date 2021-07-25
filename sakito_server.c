@@ -225,18 +225,18 @@ int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket)
 	// Receive command output stream and write output chunks to stdout.
 	while (1)
 	{
-		// Receive initial uint32_t chunk size.
-		if (s_tcp_recv(client_socket, buf, sizeof(uint32_t)) != sizeof(uint32_t))
+		// Receive initial uint16_t chunk size.
+		if (s_tcp_recv(client_socket, buf, sizeof(uint16_t)) != sizeof(uint16_t))
 			return FAILURE;
 
 		// Deserialize chunk size uint32_t bytes.
-		int64_t chunk_size = (int64_t)s_ntohl_conv(buf);
+		uint16_t chunk_size = s_ntohs_conv(buf);
 
 		// Security chunk size range check.
-		if ((chunk_size < 0) || (chunk_size > BUFLEN))
+		if (chunk_size > BUFLEN)
 			return FAILURE;
 		// End of cmd.exe output.
-		else if (chunk_size == 0)
+		if (chunk_size == 0)
 			break;
 
 		int bytes_received, count = 0;
