@@ -297,7 +297,7 @@ void delete_client(Server_map* const s_map, const int client_id)
 	// Resize clients member values to remove client.
 	resize_conns(s_map, client_id);
 
-	// Unlock our mutex to now.
+	// Unlock our mutex now.
 	s_mutex_unlock(s_map);
 	printf("Client: \"%s\" disconnected.\n\n", s_map->clients[client_id].host);
 }
