@@ -125,14 +125,14 @@ void s_accept_conns(Server_map* const s_map)
 	}
 }
 
-// Function to copy uint64_t bytes to new memory block/location to abide strict aliasing.
-static inline uint32_t s_ntohl_conv(char* const buf) 
+// Function to copy uint16_t bytes to new memory block/location to abide strict aliasing.
+static inline uint16_t s_ntohs_conv(char* const buf) 
 {
-	uint32_t new;
-	memcpy(&new, buf, sizeof(new));
+	uint16_t uint16_new;
+	memcpy(&uint16_new, buf, sizeof(uint16_t));
 
 	// Return deserialized bytes.
-	return ntohl(new);
+	return ntohs(uint16_new);
 }
 
 #endif
