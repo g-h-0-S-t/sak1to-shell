@@ -61,10 +61,10 @@ int send_pipe_output(HANDLE child_stdout_read, char* const buf, const SOCKET con
 		ReadFile(child_stdout_read, buf, BUFLEN, &bytes_read, NULL);
 
 		// Serialize chunk size bytes (for endianness).
-		uint32_t chunk_size_nbytes = htonl((uint32_t)bytes_read); 
+		uint16_t chunk_size_nbytes = htons((uint16_t)bytes_read); 
 
 		// Send serialized chunk size int32 bytes to server.
-		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint32_t), 0) < 1)
+		if (send(connect_socket, (char*)&chunk_size_nbytes, sizeof(uint16_t), 0) < 1)
 			return SOCKET_ERROR;
 
 		// If we've reached the end of the child's stdout, stderr.
