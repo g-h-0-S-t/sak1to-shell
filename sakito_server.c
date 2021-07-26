@@ -105,7 +105,7 @@ int client_chdir(char* const buf, const size_t cmd_len, const SOCKET client_sock
 int terminate_client(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
 {
 	// '2' is the command code for terminating/killing the process on the client.
-	s_tcp_send(client_socket, "2", cmd_len);
+	s_tcp_send(client_socket, "2", 1);
 
 	return EXIT_SUCCESS;
 }
