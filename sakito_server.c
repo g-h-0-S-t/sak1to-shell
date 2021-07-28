@@ -229,7 +229,7 @@ int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket)
 		if (s_tcp_recv(client_socket, buf, sizeof(uint16_t)) != sizeof(uint16_t))
 			return FAILURE;
 
-		// Deserialize chunk size uint32_t bytes.
+		// Deserialize chunk size uint16_t bytes.
 		uint16_t chunk_size = s_ntohs_conv(buf);
 
 		// Security chunk size range check.
