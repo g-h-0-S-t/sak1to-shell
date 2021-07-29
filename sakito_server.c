@@ -25,7 +25,8 @@ Use this code educationally/legally.
 /*
 All sak1to-API functions that are prefixed with "s_" are located within sakito_server_tools.h-
 and depending on the OS sakito_s*_tools.h. All functions that are not prefixed with "s_" are-
-local to this (sakito_server.c) file and the Standard GNU C Library.
+local to this (sakito_server.c) file and the Standard GNU C Library or functions that match
+the same argument signature on each OS.
 */
 #include <stdio.h>
 #include <errno.h>
