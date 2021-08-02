@@ -6,6 +6,7 @@ Use educationally/legally.
 #define SAKITO_CORE_H
 
 #include <stdint.h>
+#include <string.h>
 
 #define BUFLEN 8192
 #define SUCCESS 1
