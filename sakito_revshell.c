@@ -218,7 +218,7 @@ int main(void)
 				// 8192 == Max command line command length in windows + 1 for null termination.
 				char buf[BUFLEN+1] = { 0 };
 
-				init: // Receive initialization byte.
+				_init: // Receive initialization byte.
 				i_result = recv(connect_socket, buf, 1, 0);
 				
 				while (i_result > 0) 
@@ -257,7 +257,7 @@ int main(void)
 							break;
 						case '5':
 							// Reinitiate connection (backgrounded).
-							goto init;
+							goto _init;
 						case '6':
 							// Server-side error occurred re-receive command.
 							i_result = 0;
