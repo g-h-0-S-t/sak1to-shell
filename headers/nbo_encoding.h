@@ -3,7 +3,11 @@
 
 #include "os_check.h"
 
-#if !__BIG_ENDIAN__
+#if __BIG_ENDIAN__
+    #include <winsock2.h>
+    #define htonll(x) (x)
+    #define ntohll(x) (x)
+#else
     #ifdef OS_LIN
         #include <arpa/inet.h>
     #endif
