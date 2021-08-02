@@ -71,9 +71,29 @@ void* s_parse_cmd(char* const buf, size_t *cmd_len, int cmds_len, const char com
 	return default_func;
 }
 
+// Function to bind socket to specified port.
+void bind_socket(const SOCKET listen_socket) 
+{
+	// Create sockaddr_in structure.
+	struct sockaddr_in sin;
+
+	// Assign member values.
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(PORT);
+	sin.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// Bind ip address and port to listen_socket.
+	if (bind(listen_socket, (struct sockaddr*)&sin, sizeof(sin)) != 0)
+		terminate_server(listen_socket, "Socket bind failed with error");
+
+	// Place the listen_socket in listen state.
+	if (listen(listen_socket, SOMAXCONN) != 0)
+		terminate_server(listen_socket, "An error occured while placing the socket in listening state");
+}
+
 void add_client(Server_map* const s_map, char* const host, const SOCKET client_socket) 
 {
-	// Lock our mutex to prevent race conditions from occurring with delete_client()
+	// Lock our mutex to prevent race conditions from occurring with s_delete_client()
 	s_mutex_lock(s_map);
 
 	if (s_map->clients_sz == s_map->clients_alloc)
@@ -123,6 +143,42 @@ void s_accept_conns(Server_map* const s_map)
 		// Add client oriented data to s_map object.
 		add_client(s_map, host, client_socket);
 	}
+}
+
+void resize_conns(Server_map* const s_map, int client_id) 
+{
+	// If there's more than one connection: resize the clients structure member values.
+	if (s_map->clients_sz > 1) 
+	{
+		int max_index = s_map->clients_sz-1;
+		for (size_t i = client_id; i < max_index; i++) 
+		{
+			s_map->clients[i].sock = s_map->clients[i + 1].sock;
+			s_map->clients[i].host = s_map->clients[i + 1].host;
+		}
+		s_map->clients[max_index].sock = 0;
+		s_map->clients[max_index].host = NULL;
+	}
+
+	s_map->clients_sz--;
+}
+
+// Function to resize s_map array/remove and close connection.
+void s_delete_client(Server_map* const s_map, const int client_id) 
+{
+	// Lock our mutex to prevent race conditions from occurring with accept_conns().
+	s_mutex_lock(s_map);
+
+	// If the file descriptor is open: close it.
+	if (s_map->clients[client_id].sock)
+		s_closesocket(s_map->clients[client_id].sock);
+
+	// Resize clients member values to remove client.
+	resize_conns(s_map, client_id);
+
+	// Unlock our mutex now.
+	s_mutex_unlock(s_map);
+	printf("Client: \"%s\" disconnected.\n\n", s_map->clients[client_id].host);
 }
 
 // Function to copy uint16_t bytes to new memory block/location to abide strict aliasing.
