@@ -24,6 +24,8 @@ Use educationally/legally.
 #endif
 
 #if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
+	#include <ws2tcpip.h>
+
 	HANDLE s_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 	{
 		return CreateFile(filename,
