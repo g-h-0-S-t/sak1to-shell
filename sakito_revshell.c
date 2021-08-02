@@ -260,6 +260,7 @@ int main(void)
 							goto init;
 						case '6':
 							// Server-side error occurred re-receive command.
+							i_result = 0;
 							break;
 					}
 				}
