@@ -5,6 +5,8 @@ Use educationally/legally.
 #ifndef SAKITO_CORE_H
 #define SAKITO_CORE_H
 
+#include <stdint.h>
+
 #define BUFLEN 8192
 #define SUCCESS 1
 #define FAILURE -1
