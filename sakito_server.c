@@ -17,7 +17,6 @@ Use this code educationally/legally.
 	#pragma comment(lib, "ws2_32.lib")
 #elif defined OS_LIN
 	#define _LARGEFILE64_SOURCE
-	#include <string.h>
 	#include "headers/nbo_encoding.h"
 	#include "headers/sakito_core.h"
 	#include "headers/sakito_slin_utils.h"
@@ -30,6 +29,7 @@ local to this (sakito_server.c) file and the Standard GNU C Library or functions
 the same argument signature on each OS.
 */
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 #include "headers/sakito_server_tools.h"
 
