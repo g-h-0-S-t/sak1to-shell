@@ -16,7 +16,7 @@ Compiling Linux server with GCC:
 gcc -pthread sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/linux/sakito_slin_utils.c -o sakito_server
 ```
 
-Compiling Windows server with cl.exe:
+Compiling Windows server with cl.exe within Developers command prompt:
 ```
 cl sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/windows/sakito_swin_utils.c
 ```
