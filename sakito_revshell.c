@@ -1,4 +1,4 @@
-/* 
+/*
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
@@ -6,8 +6,8 @@ Use educationally/legally.
 #include <stdint.h>
 #include <direct.h>
 #include <errno.h>
-#include "headers/nbo_encoding.h"
-#include "headers/sakito_core.h"
+#include "lib/headers/nbo_encoding.h"
+#include "lib/headers/sakito_core_funcs.h"
 
 #define HOST "127.0.0.1"
 #define PORT 4443
