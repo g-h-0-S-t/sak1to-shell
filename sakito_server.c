@@ -1,8 +1,6 @@
 /*
 Coded by d4rkstat1c.
 Use this code educationally/legally.
-gcc -pthread sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/linux/sakito_slin_utils.c -o sakito_server
-cl sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/windows/sakito_swin_utils.c
 */
 
 #define PORT 4443
