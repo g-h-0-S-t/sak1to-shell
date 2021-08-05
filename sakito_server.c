@@ -1,37 +1,32 @@
 /*
 Coded by d4rkstat1c.
 Use this code educationally/legally.
+gcc -pthread sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/linux/sakito_slin_utils.c -o sakito_server
+cl sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/windows/sakito_swin_utils.c
 */
-
-#include "headers/os_check.h"
-#define SERVER
 
 #define PORT 4443
 
+#include "lib/headers/os_check.h"
+#define SERVER
 #ifdef OS_WIN
-	#include <WS2tcpip.h>
-	#include <Windows.h>
-	#include <inttypes.h>
-	#include "headers/sakito_core.h"
-	#include "headers/sakito_swin_utils.h"
-	#pragma comment(lib, "ws2_32.lib")
+#include <WS2tcpip.h>
+#include <Windows.h>
+#include <inttypes.h>
+#include "lib/headers/sakito_core_funcs.h"
+#include "lib/headers/sakito_server_funcs.h"
+#include "lib/headers/windows/sakito_swin_types.h"
+#pragma comment(lib, "ws2_32.lib")
 #elif defined OS_LIN
-	#define _LARGEFILE64_SOURCE
-	#include "headers/nbo_encoding.h"
-	#include "headers/sakito_core.h"
-	#include "headers/sakito_slin_utils.h"
+#include <unistd.h>
+#include "lib/headers/sakito_core_funcs.h"
+#include "lib/headers/sakito_server_funcs.h"
+#include "lib/headers/linux/sakito_slin_types.h"
 #endif
-
-/*
-All sak1to-API functions that are prefixed with "s_" are located within sakito_server_tools.h-
-and depending on the OS sakito_s*_tools.h. All functions that are not prefixed with "s_" are-
-local to this (sakito_server.c) file and the Standard GNU C Library or functions that match
-the same argument signature on each OS.
-*/
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "headers/sakito_server_tools.h"
 
 // Host change directory function.
 void host_chdir(Server_map* const s_map) 
