@@ -108,17 +108,6 @@ void s_mutex_unlock(Server_map* const s_map)
 #define BACKGROUND -100
 #define FILE_NOT_FOUND 1
 
-/*
-
-Below contains the various header files which link various sakito-API functions which will be compiled conditionally based on the operating system,
-currently supports only linux and windows systems.  The APIs have a matching signature allowing for cross-platform compilation.
-
-*/
-
-/*
-Below are functions related to string parsing and IO.
-*/
-
 void s_read_stdin(char* const buf, size_t* cmd_len) 
 {
 	char c;
