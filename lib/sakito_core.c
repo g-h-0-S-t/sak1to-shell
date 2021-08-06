@@ -6,8 +6,9 @@ Use educationally/legally.
 #include <string.h>
 #include "headers/nbo_encoding.h"
 #include "headers/sakito_core_funcs.h"
+#include "headers/os_check.h"
 
-#if defined(_WIN32) || defined(_WIN64) || (defined(__CYGWIN__) && !defined(_WIN32))
+#ifdef OS_WIN
 #include <fileapi.h>
 #include <ws2tcpip.h>
 #include "headers/windows/sakito_swin_types.h"
@@ -88,6 +89,7 @@ BOOL s_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 	memset(&si, 0, sizeof(si));
 
 	// Set up members of the STARTUPINFO structure. 
+	// This structure specifies the STDIN and STDOUT handles for redirection.
 	if (child_stdout_write) 
 	{
 		si.cb = sizeof(STARTUPINFO);
@@ -95,6 +97,8 @@ BOOL s_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 		si.hStdOutput = child_stdout_write;
 		si.dwFlags |= STARTF_USESTDHANDLES;
 	}
+
+	// 7 + 1 for null termination/string truncation.
 
 	// Create the child process.
 	BOOL i_result = CreateProcess(NULL, 
