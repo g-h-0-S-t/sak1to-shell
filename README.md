@@ -18,7 +18,7 @@ gcc -pthread sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/lin
 
 Compiling Windows server with cl.exe within Developers command prompt:
 ```
-cl sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/windows/sakito_swin_utils.c
+cl.exe sakito_server.c lib/sakito_core.c lib/sakito_server_tools.c lib/windows/sakito_swin_utils.c
 ```
 
 
