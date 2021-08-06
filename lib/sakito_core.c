@@ -96,8 +96,6 @@ BOOL s_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 		si.dwFlags |= STARTF_USESTDHANDLES;
 	}
 
-	// 7 + 1 for null termination/string truncation.
-
 	// Create the child process.
 	BOOL i_result = CreateProcess(NULL, 
 					buf,
