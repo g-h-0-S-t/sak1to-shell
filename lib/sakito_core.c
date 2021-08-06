@@ -2,12 +2,13 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
-#include <fileapi.h>
 #include <ws2tcpip.h>
+#include <fileapi.h>
 #include <stdint.h>
 #include <string.h>
 #include "headers/nbo_encoding.h"
 #include "headers/sakito_core_funcs.h"
+#include "headers/os_check.h"
 #include "headers/windows/sakito_swin_types.h"
 
 HANDLE s_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
