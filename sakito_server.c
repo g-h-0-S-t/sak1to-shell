@@ -2,6 +2,10 @@
 Coded by d4rkstat1c.
 Use this code educationally/legally.
 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include "lib/headers/os_check.h"
 #define SERVER
 #ifdef OS_WIN
@@ -16,10 +20,7 @@ Use this code educationally/legally.
 #endif
 #include "lib/headers/sakito_core_funcs.h"
 #include "lib/headers/sakito_server_funcs.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+
 
 #define PORT 4443
 
