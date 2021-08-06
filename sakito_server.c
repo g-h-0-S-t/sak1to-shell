@@ -2,29 +2,27 @@
 Coded by d4rkstat1c.
 Use this code educationally/legally.
 */
-
-#define PORT 4443
-
 #include "lib/headers/os_check.h"
 #define SERVER
 #ifdef OS_WIN
 #include <WS2tcpip.h>
 #include <Windows.h>
 #include <inttypes.h>
-#include "lib/headers/sakito_core_funcs.h"
-#include "lib/headers/sakito_server_funcs.h"
 #include "lib/headers/windows/sakito_swin_types.h"
 #pragma comment(lib, "ws2_32.lib")
 #elif defined OS_LIN
 #include <unistd.h>
-#include "lib/headers/sakito_core_funcs.h"
-#include "lib/headers/sakito_server_funcs.h"
 #include "lib/headers/linux/sakito_slin_types.h"
 #endif
+
+#include "lib/headers/sakito_core_funcs.h"
+#include "lib/headers/sakito_server_funcs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+#define PORT 4443
 
 // Host change directory function.
 void host_chdir(Server_map* const s_map) 
