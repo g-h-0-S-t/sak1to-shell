@@ -14,7 +14,6 @@ Use this code educationally/legally.
 #include <unistd.h>
 #include "lib/headers/linux/sakito_slin_types.h"
 #endif
-
 #include "lib/headers/sakito_core_funcs.h"
 #include "lib/headers/sakito_server_funcs.h"
 #include <stdio.h>
