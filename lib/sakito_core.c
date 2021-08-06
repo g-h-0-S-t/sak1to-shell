@@ -2,15 +2,12 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
+#include <fileapi.h>
+#include <ws2tcpip.h>
 #include <stdint.h>
 #include <string.h>
 #include "headers/nbo_encoding.h"
 #include "headers/sakito_core_funcs.h"
-#include "headers/os_check.h"
-
-#ifdef OS_WIN
-#include <fileapi.h>
-#include <ws2tcpip.h>
 #include "headers/windows/sakito_swin_types.h"
 
 HANDLE s_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
@@ -123,4 +120,3 @@ BOOL s_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 
 	return i_result;
 }
-#endif
