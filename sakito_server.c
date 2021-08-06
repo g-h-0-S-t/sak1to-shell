@@ -21,7 +21,6 @@ Use this code educationally/legally.
 #include "lib/headers/sakito_core_funcs.h"
 #include "lib/headers/sakito_server_funcs.h"
 
-
 #define PORT 4443
 
 // Host change directory function.
