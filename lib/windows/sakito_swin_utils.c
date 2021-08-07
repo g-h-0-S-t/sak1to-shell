@@ -18,6 +18,11 @@ Use educationally/legally.
 void bind_socket(const SOCKET listen_socket);
 void s_accept_conns(Server_map* const s_map);
 
+
+/*
+Below contains windows specific sakito API functions.
+*/
+
 // Store current working directory in a provided buffer.
 void get_cwd(char* buf)
 {
