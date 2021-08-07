@@ -20,6 +20,11 @@ Use educationally/legally.
 void bind_socket(const SOCKET listen_socket);
 void s_accept_conns(Server_map* const s_map);
 
+
+/*
+Below contains linux specific sakito API functions.
+*/
+
 // Store current working directory in a provided buffer.
 void get_cwd(char *buf)
 {
@@ -49,10 +54,6 @@ void s_close_file(s_file file)
 {
 	close(file);
 }
-
-/*
-Below contains linux specific sakito API functions.
-*/
 
 // Create a socket file descriptor.
 int create_socket() 
