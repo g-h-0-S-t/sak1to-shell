@@ -20,7 +20,6 @@ Use educationally/legally.
 void bind_socket(const SOCKET listen_socket);
 void s_accept_conns(Server_map* const s_map);
 
-
 // Store current working directory in a provided buffer.
 void get_cwd(char *buf)
 {
@@ -28,12 +27,14 @@ void get_cwd(char *buf)
 }
 
 // Write/send data to a given socket file descriptor.
-int s_tcp_send(SOCKET socket, char* buf, size_t count) {
+int s_tcp_send(SOCKET socket, char* buf, size_t count)
+{
 	write(socket, buf, count);
 }
 
 // Read/receive data from a given socket file descriptor.
-int s_tcp_recv(SOCKET socket, char* buf, size_t count) {
+int s_tcp_recv(SOCKET socket, char* buf, size_t count)
+{
 	read(socket, buf, count);
 }
 
