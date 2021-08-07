@@ -20,7 +20,6 @@ Use educationally/legally.
 void bind_socket(const SOCKET listen_socket);
 void s_accept_conns(Server_map* const s_map);
 
-
 /*
 Below contains linux specific sakito API functions.
 */
