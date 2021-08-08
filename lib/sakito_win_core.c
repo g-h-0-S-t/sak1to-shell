@@ -87,8 +87,6 @@ BOOL s_win_cp(HANDLE child_stdout_write, const LPSTR buf)
 	memset(&pi, 0, sizeof(pi));
 	memset(&si, 0, sizeof(si));
 
-	// Set up members of the STARTUPINFO structure. 
-	// This structure specifies the STDIN and STDOUT handles for redirection.
 	if (child_stdout_write) 
 	{
 		si.cb = sizeof(STARTUPINFO);
