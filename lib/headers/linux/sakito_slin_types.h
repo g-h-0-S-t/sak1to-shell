@@ -2,10 +2,8 @@
 #define SAKITO_LINUX_TYPES_H
 
 #include <pthread.h>
+#include "../sakito_multi_def.h"
 
-#ifndef BUFLEN
-#define BUFLEN 8192
-#endif
 #define SOCKET int
 #define CONSOLE_FSTR "sak1to-console:~%s$ "
 #define INTERACT_FSTR "┌%d─%s\n└%s>"
@@ -13,8 +11,6 @@
 #define SOCKET_ERROR -1
 #define _FILE_OFFSET_BITS 64
 #define INVALID_FILE -1
-#define READ 1
-#define WRITE 0
 
 typedef struct {
 	// Client hostname.
