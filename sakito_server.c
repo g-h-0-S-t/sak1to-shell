@@ -20,6 +20,7 @@ Use this code educationally/legally.
 #endif
 #include "lib/headers/sakito_core_funcs.h"
 #include "lib/headers/sakito_server_funcs.h"
+#include "lib/headers/sakito_multi_def.h"
 
 #define PORT 4443
 
