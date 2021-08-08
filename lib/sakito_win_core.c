@@ -10,6 +10,7 @@ Use educationally/legally.
 #include "headers/sakito_core_funcs.h"
 #include "headers/os_check.h"
 #include "headers/windows/sakito_swin_types.h"
+#include "headers/sakito_multi_def.h"
 
 HANDLE s_win_openf(const LPCTSTR filename, const DWORD desired_access, const DWORD creation_dispostion) 
 {
