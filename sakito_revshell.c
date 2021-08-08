@@ -12,6 +12,8 @@ Use educationally/legally.
 #define HOST "127.0.0.1"
 #define PORT 4443
 
+#define BUFLEN 8192
+
 #pragma comment(lib, "Ws2_32.lib")
 
 // Function to create connect socket.
