@@ -16,6 +16,7 @@ Use educationally/legally.
 #include "../headers/sakito_core_funcs.h"
 #include "../headers/linux/sakito_slin_types.h"
 #include "../headers/sakito_server_funcs.h"
+#include "../headers/sakito_multi_def.h"
 
 void bind_socket(const SOCKET listen_socket);
 void s_accept_conns(Server_map* const s_map);
