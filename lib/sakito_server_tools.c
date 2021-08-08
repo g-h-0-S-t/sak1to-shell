@@ -17,6 +17,7 @@ Use educationally/legally.
 #include <WS2tcpip.h>
 #include "headers/windows/sakito_swin_types.h"
 #include "headers/sakito_server_funcs.h"
+#include "headers/sakito_multi_def.h"
 
 // Closing a NT kernel handle/SOCKET.
 #define s_closesocket(socket) closesocket(socket)
