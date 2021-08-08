@@ -1,14 +1,12 @@
 #ifndef SAKITO_WINDOWS_TYPES_H
 #define SAKITO_WINDOWS_TYPES_H
 
-#ifndef BUFLEN
-#define BUFLEN 8192
-#endif
+#include <fileapi.h>
+#include "../sakito_multi_def.h"
+
 #define CONSOLE_FSTR "sak1to-console-(%s>"
 #define INTERACT_FSTR "%d-(%s)-%s>"
 #define INVALID_FILE INVALID_HANDLE_VALUE
-#define READ 1
-#define WRITE 0
 
 typedef struct {
 	// Client hostname.
