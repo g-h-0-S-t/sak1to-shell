@@ -26,7 +26,7 @@ typedef struct {
 	char buf[BUFLEN + 9]; // BUFLEN + space for 'command code' + "cmd /C " + '\0'
 
 	// Server socket for accepting connections.
-	int listen_socket;
+	SOCKET listen_socket;
 
 	// Pthread object for handling execution/termination of accept_conns thread.
 	pthread_t acp_thread;
