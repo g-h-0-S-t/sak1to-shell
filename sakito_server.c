@@ -181,7 +181,7 @@ int background_client(char* const buf, const size_t cmd_len, const SOCKET client
 }
 
 // Function to send command to client to be executed via CreateProcess() and receive output.
-int client_exec(char* const buf, const size_t cmd_len, const SOCKET client_socket) 
+int client_exec(char* buf, const size_t cmd_len, const SOCKET client_socket) 
 {
 	buf -= 7;
 	memcpy(buf, "0cmd /C ", 8); // 0 is the command code for executing the command via CreateProcess on the client.
