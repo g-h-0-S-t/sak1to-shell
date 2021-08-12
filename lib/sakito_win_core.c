@@ -36,7 +36,7 @@ int s_win_sendf(const SOCKET socket, HANDLE h_file, char* const buf, uint64_t f_
 {
 	uint64_t f_size_bytes = htonll(f_size);
 
-	// Send serialized file size int32 bytes to server.
+	// Send serialized file size uint64_t bytes to server.
 	if (send(socket, (char*)&f_size_bytes, sizeof(uint64_t), 0) < 1)
 		return SOCKET_ERROR;
 
