@@ -2,9 +2,6 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
-#ifndef SAKITO_SWIN_UTILS_H
-#define SAKITO_SWIN_UTILS_H
-
 #include <WS2tcpip.h>
 #include <Windows.h>
 #include <inttypes.h>
@@ -173,5 +170,3 @@ void s_init(Server_map* const s_map)
 	// Begin accepting connections.
 	s_map->acp_thread = CreateThread(0, 0, accept_conns_thread, s_map, 0, 0);
 }
-
-#endif
