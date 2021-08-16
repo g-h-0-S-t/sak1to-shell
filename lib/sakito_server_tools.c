@@ -2,9 +2,6 @@
 Coded by d4rkstat1c.
 Use educationally/legally.
 */
-#ifndef SAKITO_SERVER_TOOLS_H
-#define SAKITO_SERVER_TOOLS_H
-
 #ifndef PORT
 #define PORT 4443
 #endif
@@ -261,4 +258,3 @@ void s_delete_client(Server_map* const s_map, const int client_id)
 	s_mutex_unlock(s_map);
 	printf("Client: \"%s\" disconnected.\n\n", s_map->clients[client_id].host);
 }
-#endif
